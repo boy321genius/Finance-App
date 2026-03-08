@@ -924,7 +924,7 @@
           <div class="card-body">
             <div class="bucket-section">
               <div class="bucket-section-header">
-                <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
+                <span class="bucket-section-title">Bills &amp; Other Fixed Obligations</span>
                 <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
               </div>
               ${bills.length === 0
@@ -968,7 +968,6 @@
           <div class="card-header"><h2 class="card-title">🛍️ Discretionary Spending</h2></div>
           <div class="card-body">
             <div class="bucket-section-header" style="margin-bottom:10px;">
-              <span class="bucket-section-title">vs Budget</span>
               <span class="bucket-section-totals"><span>${fmt(totalDiscActual)}</span> / ${totalDiscBudget ? fmt(totalDiscBudget) : "—"}</span>
             </div>
             ${disc.length === 0
