@@ -108,7 +108,6 @@
     .card-title { margin: 0; font-size: 16px; font-weight: 700; }
     .card-body { font-size: 14px; color: var(--color-text-secondary); }
 
-    /* ---- Budget bucket styles ---- */
     .bucket-summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -207,7 +206,6 @@
 
     .empty-bucket { font-size: 12px; color: var(--color-text-secondary); font-style: italic; padding: 6px 0 2px 0; }
 
-    /* ---- Admin styles ---- */
     .admin-section { margin-bottom: 0; }
 
     .admin-section-header {
@@ -347,7 +345,6 @@
       white-space: nowrap;
     }
 
-    /* ---- Shared form styles ---- */
     .form-group { margin-bottom: 12px; }
 
     .form-label {
@@ -358,8 +355,6 @@
       margin-bottom: 6px;
     }
 
-    /* THE FIX: -webkit-appearance: none strips iOS Safari's native date input
-       sizing so width: 100% is fully respected, matching all other fields */
     .form-input,
     .form-select,
     .form-textarea {
@@ -505,6 +500,61 @@
   </nav>
 
   <script>
+
+    // ---- Default seed data ----
+    // Bills & Subs use national average estimates; Disc stays at $0 (too personal to pre-fill)
+
+    const DEFAULT_BILLS = [
+      { name: "Rent / Mortgage",               budgetAmount: 1500 },
+      { name: "Electric",                       budgetAmount: 135  },
+      { name: "Water",                          budgetAmount: 35   },
+      { name: "Gas / Heat",                     budgetAmount: 94   },
+      { name: "Internet",                       budgetAmount: 70   },
+      { name: "Cell Phone",                     budgetAmount: 80   },
+      { name: "Car Payment",                    budgetAmount: 500  },
+      { name: "Car Insurance",                  budgetAmount: 150  },
+      { name: "Health Insurance",               budgetAmount: 400  },
+      { name: "Renter's / Home Insurance",      budgetAmount: 30   },
+      { name: "Student Loan Payment",           budgetAmount: 400  },
+      { name: "Minimum Credit Card Payment",    budgetAmount: 100  }
+    ].map(i => ({ ...i, id: i.name }));
+
+    const DEFAULT_SUBS = [
+      { name: "Spotify / Music",                budgetAmount: 12   },
+      { name: "Netflix",                        budgetAmount: 18   },
+      { name: "Hulu / Streaming",               budgetAmount: 18   },
+      { name: "YouTube Premium",                budgetAmount: 14   },
+      { name: "iCloud / Google One Storage",    budgetAmount: 3    },
+      { name: "Gym Membership",                 budgetAmount: 45   },
+      { name: "Amazon Prime",                   budgetAmount: 15   },
+      { name: "News / Magazine Subscription",   budgetAmount: 10   }
+    ].map(i => ({ ...i, id: i.name }));
+
+    const DEFAULT_INVESTMENTS = [
+      { name: "Emergency Fund",                 budgetAmount: 200  },
+      { name: "401(k) / IRA Contribution",      budgetAmount: 500  },
+      { name: "Brokerage / Investing",          budgetAmount: 200  },
+      { name: "House Down Payment Fund",        budgetAmount: 300  },
+      { name: "Vacation Fund",                  budgetAmount: 100  },
+      { name: "General Savings",                budgetAmount: 200  }
+    ].map(i => ({ ...i, id: i.name }));
+
+    // Discretionary intentionally stays at $0 — amounts are too personal to assume
+    const DEFAULT_DISC = [
+      "Restaurants / Takeout",
+      "Groceries",
+      "Gas / Fuel",
+      "Shopping / Clothing",
+      "Entertainment / Going Out",
+      "Personal Care / Haircut",
+      "Gifts / Holidays",
+      "Pet Care",
+      "Travel",
+      "Home Supplies / Household",
+      "Medical / Out-of-Pocket",
+      "Misc"
+    ].map(name => ({ id: name, name, budgetAmount: 0 }));
+
     // ---- Global state ----
 
     let appSettings = {
@@ -663,10 +713,11 @@
       plannerState = { ...plannerState, ...(state.plannerState || {}) };
       if (state.activeFileName) activeFileName = state.activeFileName;
 
-      if (!appSettings.recurringBills)          appSettings.recurringBills          = [];
-      if (!appSettings.recurringSubscriptions)  appSettings.recurringSubscriptions  = [];
-      if (!appSettings.recurringInvestments)    appSettings.recurringInvestments    = [];
-      if (!appSettings.discretionaryCategories) appSettings.discretionaryCategories = [];
+      // Seed defaults only on first-ever load (empty arrays)
+      if (!appSettings.recurringBills          || appSettings.recurringBills.length          === 0) appSettings.recurringBills          = DEFAULT_BILLS.map(i => ({ ...i }));
+      if (!appSettings.recurringSubscriptions  || appSettings.recurringSubscriptions.length  === 0) appSettings.recurringSubscriptions  = DEFAULT_SUBS.map(i => ({ ...i }));
+      if (!appSettings.recurringInvestments    || appSettings.recurringInvestments.length    === 0) appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
+      if (!appSettings.discretionaryCategories || appSettings.discretionaryCategories.length === 0) appSettings.discretionaryCategories = DEFAULT_DISC.map(i => ({ ...i }));
 
       if (!activeMonthKey) activeMonthKey = formatMonthKey(new Date());
       ensureMonthExists(activeMonthKey);
@@ -924,12 +975,10 @@
           <div class="card-body">
             <div class="bucket-section">
               <div class="bucket-section-header">
-                <span class="bucket-section-title">Bills &amp; Other Fixed Obligations</span>
+                <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
                 <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
               </div>
-              ${bills.length === 0
-                ? '<p class="empty-bucket">No bills configured yet — add them in Admin.</p>'
-                : bills.map(b => renderBucketItem(b.name, billActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${bills.map(b => renderBucketItem(b.name, billActuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -942,9 +991,7 @@
                 <span class="bucket-section-title">Subscriptions and Other</span>
                 <span class="bucket-section-totals"><span>${fmt(totalSubsActual)}</span> / ${fmt(totalSubsBudget)}</span>
               </div>
-              ${subs.length === 0
-                ? '<p class="empty-bucket">No subscriptions configured yet — add them in Admin.</p>'
-                : subs.map(b => renderBucketItem(b.name, subActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${subs.map(b => renderBucketItem(b.name, subActuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -957,9 +1004,7 @@
                 <span class="bucket-section-title">Contributions This Month</span>
                 <span class="bucket-section-totals"><span>${fmt(totalInvstActual)}</span> / ${fmt(totalInvstBudget)}</span>
               </div>
-              ${invsts.length === 0
-                ? '<p class="empty-bucket">No savings goals configured yet — add them in Admin.</p>'
-                : invsts.map(b => renderBucketItem(b.name, invstActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${invsts.map(b => renderBucketItem(b.name, invstActuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -968,6 +1013,7 @@
           <div class="card-header"><h2 class="card-title">🛍️ Discretionary Spending</h2></div>
           <div class="card-body">
             <div class="bucket-section-header" style="margin-bottom:10px;">
+              <span class="bucket-section-title">vs Budget</span>
               <span class="bucket-section-totals"><span>${fmt(totalDiscActual)}</span> / ${totalDiscBudget ? fmt(totalDiscBudget) : "—"}</span>
             </div>
             ${disc.length === 0
