@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Finance Tracker</title>
+
+  <!-- Theme / PWA basics -->
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Finance" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Local-first personal finance tracker" />
+
+  <!-- Simple inline manifest (you can tweak later) -->
+  <link
+    rel="manifest"
+    href='data:application/manifest+json,{
+      "name":"Finance Tracker",
+      "short_name":"Finance",
+      "description":"Local-first personal finance tracker",
+      "start_url":"./",
+      "display":"standalone",
+      "background_color":"#0b1220",
+      "theme_color":"#0b1220",
+      "orientation":"portrait",
+      "icons":[
+        {
+          "src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22%3E%3Crect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230b1220%22/%3E%3Ctext x=%2290%22 y=%22125%22 font-size=%22100%22 text-anchor=%22middle%22 fill=%22%23ffffff%22%3E$%3C/text%3E%3C/svg%3E",
+          "sizes":"180x180",
+          "type":"image/svg+xml"
+        }
+      ]
+    }'
+  />
+
+  <!-- Very minimal core styles (you can replace/expand with your V18 styles) -->
+  <style>
+    :root {
+      --color-bg-primary: #0b1220;
+      --color-bg-secondary: #111b2e;
+      --color-bg-elevated: #0f1a2e;
+      --color-text-primary: #eaf1ff;
+      --color-text-secondary: #9fb0d0;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-primary: #6aa6ff;
+      --color-primary-hover: #5a96ef;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #070c16 0%, #0b1220 60%, #0b1220 100%);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding-bottom: 70px;
+    }
+
+    .app-header {
+      background: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border);
+      padding: calc(env(safe-area-inset-top, 0) + 12px) 16px 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .header-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .app-subtitle {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .card {
+      background: linear-gradient(
+        180deg,
+        rgba(15, 26, 46, 0.92),
+        rgba(11, 18, 32, 0.92)
+      );
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .card-body {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .stat-card {
+      background: rgba(10, 19, 38, 0.7);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .stat-card-header {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .stat-main {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--color-primary);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      background: rgba(10, 19, 38, 0.8);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--color-text-primary);
+      font-family: inherit;
+    }
+
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .btn {
+      display: inline-block;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #081226;
+      background: linear-gradient(180deg, #6aa6ff, #4c86ff);
+      box-shadow: 0 6px 16px rgba(76, 134, 255, 0.3);
+    }
+
+    .btn:hover {
+      background: linear-gradient(180deg, #5a96ef, #4c86ff);
+    }
+
+    .btn-block {
+      width: 100%;
+      text-align: center;
+    }
+
+    .text-muted {
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-bg-secondary);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0));
+      z-index: 20;
+    }
+
+    .nav-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #64748b;
+      padding: 4px 4px 2px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 500;
+      gap: 4px;
+    }
+
+    .nav-btn.active {
+      color: var(--color-primary);
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(148, 163, 184, 0.2);
+      font-size: 14px;
+    }
+
+    .nav-btn.active .nav-icon {
+      background: rgba(106, 166, 255, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-text">
+      <h1 class="app-title" id="appTitle">Finance Tracker</h1>
+      <p class="app-subtitle" id="appSubtitle">Loading…</p>
+    </div>
+    <button class="btn" style="padding: 8px 10px; font-size: 11px;" id="exportBtn">
+      Backup
+    </button>
+  </header>
+
+  <main class="content">
+    <!-- Dashboard -->
+    <section id="dashboardView" class="view active"></section>
+
+    <!-- Log (add transaction) -->
+    <section id="logView" class="view"></section>
+
+    <!-- Monthly breakdown -->
+    <section id="monthlyView" class="view"></section>
+
+    <!-- Annual overview -->
+    <section id="annualView" class="view"></section>
+
+    <!-- Planner (home/savings) -->
+    <section id="plannerView" class="view"></section>
+
+    <!-- Settings + import -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Data & Settings</h2>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">
+          Your data is stored locally in this browser. Use backup and restore
+          with a JSON file to move data or keep your own snapshots.
+        </p>
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+          <button class="btn" id="importBtn" type="button">Restore from file</button>
+          <button class="btn btn-secondary" id="resetBtn" type="button" style="
+            background: transparent;
+            color: var(--color-primary);
+            border: 1px solid var(--color-border);
+            box-shadow: none;
+          ">
+            Reset data
+          </button>
+        </div>
+        <input
+          id="importFileInput"
+          type="file"
+          accept="application/json"
+          style="display:none;"
+        />
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="dashboard">
+      <div class="nav-icon">📊</div>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-btn" data-view="log">
+      <div class="nav-icon">➕</div>
+      <span>Log</span>
+    </button>
+    <button class="nav-btn" data-view="monthly">
+      <div class="nav-icon">📅</div>
+      <span>Monthly</span>
+    </button>
+    <button class="nav-btn" data-view="annual">
+      <div class="nav-icon">📈</div>
+      <span>Annual</span>
+    </button>
+    <button class="nav-btn" data-view="planner">
+      <div class="nav-icon">🏠</div>
+      <span>Planner</span>
+    </button>
+  </nav>
+
+  <script>
+    // ---- Global state ----
+
+    let appSettings = {
+      hourlyRate: null,
+      hoursPerPeriod: 80,
+      estimatedTaxRate: null,
+      healthPlanPerPeriod: null,
+      k401PerPeriod: null,
+      categories: [
+        "DISCRETIONARY - RESTAURANTS/TAKEOUT",
+        "DISCRETIONARY - SHOPPING IMPULSE",
+        "DISCRETIONARY - GAMBLING",
+        "DISCRETIONARY - ENTERTAINMENT",
+        "DISCRETIONARY - TRAVEL",
+        "DISCRETIONARY - GIFTS/SOCIAL",
+        "DISCRETIONARY - MISC"
+      ],
+      recurringBills: [],
+      recurringSubscriptions: [],
+      recurringInvestments: []
+    };
+
+    let months = {};
+    let plannerState = {
+      currentHouseSavings: 0,
+      scenarios: []
+    };
+
+    let activeView = "dashboard";
+    let activeMonthKey = null;
+    let saveTimeout = null;
+    const STORAGE_KEY = "financeTrackerState_v1";
+
+    // ---- Helpers ----
+
+    function formatMonthKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      return y + "-" + m;
+    }
+
+    function ensureMonthExists(key) {
+      if (!months[key]) {
+        months[key] = {
+          meta: { label: key },
+          transactions: [],
+          billActuals: {},
+          subscriptionActuals: {},
+          investmentActuals: {}
+        };
+      }
+    }
+
+    function formatMonthLabelFromKey(key) {
+      const [year, month] = key.split("-");
+      const d = new Date(Number(year), Number(month) - 1, 1);
+      return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+    }
+
+    // ---- Persistence ----
+
+    function buildStateObject() {
+      return {
+        appSettings,
+        months,
+        plannerState
+      };
+    }
+
+    function applyStateObject(state) {
+      if (!state) state = {};
+
+      appSettings = { ...appSettings, ...(state.appSettings || {}) };
+      months = state.months || {};
+      plannerState = { ...plannerState, ...(state.plannerState || {}) };
+
+      if (!activeMonthKey) {
+        activeMonthKey = formatMonthKey(new Date());
+      }
+      ensureMonthExists(activeMonthKey);
+
+      renderAll();
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          applyStateObject({});
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        applyStateObject(parsed);
+      } catch (err) {
+        console.error("Failed to load state", err);
+        applyStateObject({});
+      }
+    }
+
+    function saveState() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        try {
+          const state = buildStateObject();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          console.error("Failed to save state", err);
+        }
+      }, 400);
+    }
+
+    function exportStateToFile() {
+      const state = buildStateObject();
+      const blob = new Blob([JSON.stringify(state, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "finance-tracker-backup.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importStateFromFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          applyStateObject(parsed);
+          saveState();
+        } catch (err) {
+          console.error("Invalid backup file", err);
+          alert("Could not import file. Please make sure it is a valid JSON backup.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetData() {
+      if (!confirm("This will clear all local data. Continue?")) return;
+      appSettings = {
+        hourlyRate: null,
+        hoursPerPeriod: 80,
+        estimatedTaxRate: null,
+        healthPlanPerPeriod: null,
+        k401PerPeriod: null,
+        categories: [...appSettings.categories],
+        recurringBills: [],
+        recurringSubscriptions: [],
+        recurringInvestments: []
+      };
+      months = {};
+      plannerState = {
+        currentHouseSavings: 0,
+        scenarios: []
+      };
+      activeMonthKey = null;
+      localStorage.removeItem(STORAGE_KEY);
+      applyStateObject({});
+    }
+
+    // ---- View switching ----
+
+    function switchView(viewName) {
+      activeView = viewName;
+
+      document.querySelectorAll(".view").forEach(view => {
+        view.classList.toggle("active", view.id === viewName + "View");
+      });
+
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === viewName);
+      });
+
+      renderActiveView();
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderActiveView();
+    }
+
+    function renderActiveView() {
+      switch (activeView) {
+        case "dashboard":
+          renderDashboardView();
+          break;
+        case "log":
+          renderLogView();
+          break;
+        case "monthly":
+          renderMonthlyView();
+          break;
+        case "annual":
+          renderAnnualView();
+          break;
+        case "planner":
+          renderPlannerView();
+          break;
+      }
+    }
+
+    function renderHeader() {
+      const titleEl = document.getElementById("appTitle");
+      const subtitleEl = document.getElementById("appSubtitle");
+      titleEl.textContent = "Finance Tracker";
+
+      if (!activeMonthKey) {
+        subtitleEl.textContent = "Personal Finance";
+      } else {
+        subtitleEl.textContent =
+          formatMonthLabelFromKey(activeMonthKey) + " • Personal Finance";
+      }
+    }
+
+    // ---- View renderers ----
+
+    function renderDashboardView() {
+      const container = document.getElementById("dashboardView");
+      ensureMonthExists(activeMonthKey);
+      const month = months[activeMonthKey];
+
+      // Placeholder computations
+      const totalSpent = month.transactions.reduce(
+        (sum, t) => sum + (Number(t.amount) || 0),
+        0
+      );
+      const netIncome = 0;
+      const savingsBalance = plannerState.currentHouseSavings || 0;
+
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">This Month Overview</h2>
+          </div>
+          <div class="card-body">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-card-header">Net Income</div>
+                <div class="stat-main">
+                  <div class="stat-value">${netIncome.toFixed(2)}</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">Total Spent</div>
+                <div class="stat-main">
+                  <div class="stat-value">${totalSpent.toFixed(2)}</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">House Savings</div>
+                <div class="stat-main">
+                  <div class="stat-value">${savingsBalance.toFixed(2)}</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">Transactions</div>
+                <div class="stat-main">
+                  <div class="stat-value">${month.transactions.length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLogView() {
+      const container = document.getElementById("logView");
+      ensureMonthExists(activeMonthKey);
+      const month = months[activeMonthKey];
+
+      const todayISO = new Date().toISOString().slice(0, 10);
+
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Add Transaction</h2>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input id="logDateInput" type="date" class="form-input" value="${todayISO}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select id="logCategoryInput" class="form-select">
+                ${appSettings.categories
+                  .map(c => `<option value="${c}">${c}</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount</label>
+              <input id="logAmountInput" type="number" step="0.01" class="form-input" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Note</label>
+              <textarea id="logNoteInput" class="form-textarea" placeholder="Optional description"></textarea>
+            </div>
+            <button id="logAddBtn" class="btn btn-block" type="button">Add</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Transactions</h2>
+          </div>
+          <div class="card-body">
+            ${
+              month.transactions.length === 0
+                ? '<p class="text-muted">No transactions yet this month.</p>'
+                : `
+              <ul style="list-style:none; padding:0; margin:0;">
+                ${month.transactions
+                  .slice()
+                  .reverse()
+                  .slice(0, 10)
+                  .map(t => {
+                    const dateLabel = t.dateISO || "";
+                    return `
+                      <li style="padding:6px 0; border-bottom:1px solid rgba(148,163,184,0.2);">
+                        <div style="display:flex; justify-content:space-between; gap:8px;">
+                          <div>
+                            <div style="font-size:13px;">${t.category}</div>
+                            <div class="text-muted" style="font-size:11px;">${dateLabel}${
+                              t.note ? " • " + t.note : ""
+                            }</div>
+                          </div>
+                          <div style="font-weight:600;">${Number(t.amount).toFixed(2)}</div>
+                        </div>
+                      </li>
+                    `;
+                  })
+                  .join("")}
+              </ul>
+            `
+            }
+          </div>
+        </div>
+      `;
+
+      document
+        .getElementById("logAddBtn")
+        .addEventListener("click", () => {
+          const dateVal = document.getElementById("logDateInput").value;
+          const category = document.getElementById("logCategoryInput").value;
+          const amount = Number(
+            document.getElementById("logAmountInput").value || 0
+          );
+          const note = document.getElementById("logNoteInput").value.trim();
+
+          if (!dateVal || !category || !amount) {
+            alert("Please fill date, category, and amount.");
+            return;
+          }
+
+          const tx = {
+            id:
+              (window.crypto && crypto.randomUUID && crypto.randomUUID()) ||
+              String(Date.now()),
+            dateISO: dateVal,
+            category,
+            amount,
+            note
+          };
+
+          month.transactions.push(tx);
+          saveState();
+          renderLogView();
+          renderDashboardView();
+        });
+    }
+
+    function renderMonthlyView() {
+      const container = document.getElementById("monthlyView");
+      ensureMonthExists(activeMonthKey);
+      const month = months[activeMonthKey];
+
+      const totalSpent = month.transactions.reduce(
+        (sum, t) => sum + (Number(t.amount) || 0),
+        0
+      );
+
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Monthly Breakdown</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">
+              This is a placeholder summary. You can expand this to show
+              bills vs actuals, subscriptions, investments, and per-category totals.
+            </p>
+            <p style="margin-top:8px;">
+              <strong>Total transactions:</strong> ${month.transactions.length}<br>
+              <strong>Total spent:</strong> ${totalSpent.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAnnualView() {
+      const container = document.getElementById("annualView");
+      const monthKeys = Object.keys(months).sort();
+
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Annual Overview</h2>
+          </div>
+          <div class="card-body">
+            ${
+              monthKeys.length === 0
+                ? '<p class="text-muted">No months with data yet.</p>'
+                : `
+              <ul style="list-style:none; padding:0; margin:0;">
+                ${monthKeys
+                  .map(key => {
+                    const m = months[key];
+                    const totalSpent = m.transactions.reduce(
+                      (sum, t) => sum + (Number(t.amount) || 0),
+                      0
+                    );
+                    return `
+                      <li style="padding:6px 0; border-bottom:1px solid rgba(148,163,184,0.2);">
+                        <div style="display:flex; justify-content:space-between; gap:8px;">
+                          <div>${formatMonthLabelFromKey(key)}</div>
+                          <div style="font-weight:600;">${totalSpent.toFixed(2)}</div>
+                        </div>
+                      </li>
+                    `;
+                  })
+                  .join("")}
+              </ul>
+            `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPlannerView() {
+      const container = document.getElementById("plannerView");
+      container.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Planner</h2>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">
+              This is a placeholder for your home purchase planner and other savings goals.
+              You can add scenario cards, closing-cost estimates, and monthly payment breakdowns here.
+            </p>
+            <p style="margin-top:8px;">
+              <strong>Current house savings (placeholder):</strong>
+              ${plannerState.currentHouseSavings.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    // ---- Init ----
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const view = btn.dataset.view;
+          switchView(view);
+        });
+      });
+
+      document
+        .getElementById("exportBtn")
+        .addEventListener("click", exportStateToFile);
+
+      const importInput = document.getElementById("importFileInput");
+      document.getElementById("importBtn").addEventListener("click", () => {
+        importInput.click();
+      });
+      importInput.addEventListener("change", e => {
+        const file = e.target.files && e.target.files[0];
+        if (file) importStateFromFile(file);
+        importInput.value = "";
+      });
+
+      document
+        .getElementById("resetBtn")
+        .addEventListener("click", resetData);
+
+      loadState();
+    });
+  </script>
+</body>
+</html>
