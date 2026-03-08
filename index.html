@@ -2,13 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
   <title>Finance Tracker</title>
-
-  <!-- Theme / PWA basics -->
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,29 +11,18 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="description" content="Local-first personal finance tracker" />
 
-  <!-- Simple inline manifest (you can tweak later) -->
-  <link
-    rel="manifest"
-    href='data:application/manifest+json,{
-      "name":"Finance Tracker",
-      "short_name":"Finance",
-      "description":"Local-first personal finance tracker",
-      "start_url":"./",
-      "display":"standalone",
-      "background_color":"#0b1220",
-      "theme_color":"#0b1220",
-      "orientation":"portrait",
-      "icons":[
-        {
-          "src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22%3E%3Crect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230b1220%22/%3E%3Ctext x=%2290%22 y=%22125%22 font-size=%22100%22 text-anchor=%22middle%22 fill=%22%23ffffff%22%3E$%3C/text%3E%3C/svg%3E",
-          "sizes":"180x180",
-          "type":"image/svg+xml"
-        }
-      ]
-    }'
-  />
+  <link rel="manifest" href='data:application/manifest+json,{
+    "name":"Finance Tracker",
+    "short_name":"Finance",
+    "description":"Local-first personal finance tracker",
+    "start_url":"./",
+    "display":"standalone",
+    "background_color":"#0b1220",
+    "theme_color":"#0b1220",
+    "orientation":"portrait",
+    "icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22%3E%3Crect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230b1220%22/%3E%3Ctext x=%2290%22 y=%22125%22 font-size=%22100%22 text-anchor=%22middle%22 fill=%22%23ffffff%22%3E$%3C/text%3E%3C/svg%3E","sizes":"180x180","type":"image/svg+xml"}]
+  }' />
 
-  <!-- Very minimal core styles (you can replace/expand with your V18 styles) -->
   <style>
     :root {
       --color-bg-primary: #0b1220;
@@ -49,11 +33,12 @@
       --color-border: rgba(255, 255, 255, 0.08);
       --color-primary: #6aa6ff;
       --color-primary-hover: #5a96ef;
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+      --color-danger: #f87171;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -77,105 +62,293 @@
       gap: 8px;
     }
 
-    .header-text {
-      flex: 1;
-      min-width: 0;
-    }
+    .header-text { flex: 1; min-width: 0; }
+    .app-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.3px; }
+    .app-subtitle { margin: 4px 0 0 0; font-size: 13px; color: var(--color-text-secondary); }
 
-    .app-title {
-      margin: 0;
-      font-size: 20px;
+    .quick-save-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(106,166,255,0.1);
+      border: 1px solid rgba(106,166,255,0.25);
+      border-radius: 10px;
+      padding: 7px 12px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.3px;
+      color: var(--color-primary);
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.15s;
     }
 
-    .app-subtitle {
-      margin: 4px 0 0 0;
-      font-size: 13px;
-      color: var(--color-text-secondary);
+    .quick-save-btn:hover { background: rgba(106,166,255,0.2); }
+
+    .quick-save-btn.saving {
+      color: var(--color-success);
+      border-color: rgba(74,222,128,0.3);
+      background: rgba(74,222,128,0.08);
     }
 
-    .content {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 16px;
-    }
+    .content { max-width: 800px; margin: 0 auto; padding: 16px; }
 
-    .view {
-      display: none;
-    }
-
-    .view.active {
-      display: block;
-    }
+    .view { display: none; }
+    .view.active { display: block; }
 
     .card {
-      background: linear-gradient(
-        180deg,
-        rgba(15, 26, 46, 0.92),
-        rgba(11, 18, 32, 0.92)
-      );
+      background: linear-gradient(180deg, rgba(15,26,46,0.92), rgba(11,18,32,0.92));
       border: 1px solid var(--color-border);
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 16px;
     }
 
-    .card-header {
-      margin-bottom: 12px;
-    }
+    .card-header { margin-bottom: 12px; }
+    .card-title { margin: 0; font-size: 16px; font-weight: 700; }
+    .card-body { font-size: 14px; color: var(--color-text-secondary); }
 
-    .card-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .card-body {
-      font-size: 14px;
-      color: var(--color-text-secondary);
-    }
-
-    .stats-grid {
+    /* ---- Budget bucket styles ---- */
+    .bucket-summary-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 8px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
     }
 
-    .stat-card {
-      background: rgba(10, 19, 38, 0.7);
+    .bucket-summary-card {
+      background: rgba(10,19,38,0.7);
       border: 1px solid var(--color-border);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 10px 10px 8px;
       text-align: center;
     }
 
-    .stat-card-header {
-      font-size: 10px;
+    .bucket-summary-label {
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
       color: var(--color-text-secondary);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
-    .stat-main {
-      display: flex;
-      justify-content: center;
-      align-items: baseline;
-      gap: 4px;
-    }
-
-    .stat-value {
-      font-size: 22px;
+    .bucket-summary-value {
+      font-size: 18px;
       font-weight: 800;
       color: var(--color-primary);
+      line-height: 1;
+      margin-bottom: 2px;
     }
 
-    .form-group {
-      margin-bottom: 12px;
+    .bucket-summary-sub { font-size: 10px; color: var(--color-text-secondary); }
+
+    .bucket-section { margin-bottom: 20px; }
+    .bucket-section:last-child { margin-bottom: 0; }
+
+    .bucket-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-border);
     }
+
+    .bucket-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--color-text-secondary);
+    }
+
+    .bucket-section-totals { font-size: 11px; color: var(--color-text-secondary); }
+    .bucket-section-totals span { font-weight: 700; color: var(--color-text-primary); }
+
+    .bucket-item { margin-bottom: 10px; }
+    .bucket-item:last-child { margin-bottom: 0; }
+
+    .bucket-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .bucket-item-name {
+      font-size: 13px;
+      color: var(--color-text-primary);
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bucket-item-amounts { font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+    .bucket-item-actual { font-weight: 700; }
+    .bucket-item-budget { color: var(--color-text-secondary); }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
+    .progress-bar-fill.under { background: var(--color-success); }
+    .progress-bar-fill.warn  { background: var(--color-warning); }
+    .progress-bar-fill.over  { background: var(--color-danger); }
+    .progress-bar-fill.unset { background: rgba(106,166,255,0.35); }
+
+    .empty-bucket { font-size: 12px; color: var(--color-text-secondary); font-style: italic; padding: 6px 0 2px 0; }
+
+    /* ---- Admin styles ---- */
+    .admin-section { margin-bottom: 0; }
+
+    .admin-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      border-bottom: 1px solid var(--color-border);
+      user-select: none;
+    }
+
+    .admin-section-header:hover { opacity: 0.8; }
+    .admin-section-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .admin-section-title { font-size: 13px; font-weight: 700; color: var(--color-text-secondary); }
+
+    .admin-section-meta {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      background: rgba(106,166,255,0.1);
+      border: 1px solid rgba(106,166,255,0.15);
+      border-radius: 99px;
+      padding: 2px 8px;
+    }
+
+    .admin-section-toggle { font-size: 10px; color: var(--color-text-secondary); flex-shrink: 0; }
+    .admin-section-body { padding: 10px 0 4px 0; }
+
+    .admin-item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(148,163,184,0.07);
+    }
+
+    .admin-item-row:last-of-type { border-bottom: none; }
+    .admin-item-name { flex: 1; font-size: 13px; color: var(--color-text-primary); }
+
+    .admin-item-budget {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-primary);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .admin-item-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 0;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(148,163,184,0.07);
+    }
+
+    .admin-add-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 0 4px 0;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(148,163,184,0.07);
+      margin-top: 4px;
+    }
+
+    .admin-btn {
+      background: rgba(106,166,255,0.1);
+      border: 1px solid rgba(106,166,255,0.2);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--color-primary);
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .admin-btn:hover { background: rgba(106,166,255,0.2); }
+
+    .admin-btn-danger {
+      background: rgba(248,113,113,0.1);
+      border-color: rgba(248,113,113,0.2);
+      color: var(--color-danger);
+    }
+
+    .admin-btn-danger:hover { background: rgba(248,113,113,0.2); }
+
+    .admin-btn-success {
+      background: rgba(74,222,128,0.1);
+      border-color: rgba(74,222,128,0.2);
+      color: var(--color-success);
+    }
+
+    .admin-btn-success:hover { background: rgba(74,222,128,0.2); }
+
+    .admin-input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(148,163,184,0.35);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--color-text-primary);
+      font-family: inherit;
+    }
+
+    .admin-input:focus { outline: none; border-color: var(--color-primary); }
+    .admin-input::placeholder { color: rgba(159,176,208,0.4); }
+
+    .file-info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(10,19,38,0.7);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+
+    .file-info-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+
+    .file-info-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-primary);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ---- Shared form styles ---- */
+    .form-group { margin-bottom: 12px; }
 
     .form-label {
       display: block;
@@ -185,12 +358,17 @@
       margin-bottom: 6px;
     }
 
+    /* THE FIX: -webkit-appearance: none strips iOS Safari's native date input
+       sizing so width: 100% is fully respected, matching all other fields */
     .form-input,
     .form-select,
     .form-textarea {
       width: 100%;
-      background: rgba(10, 19, 38, 0.8);
-      border: 1px solid var(--color-border);
+      max-width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(148,163,184,0.35);
       border-radius: 10px;
       padding: 10px 12px;
       font-size: 14px;
@@ -198,17 +376,21 @@
       font-family: inherit;
     }
 
-    .form-textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
+    .form-input::placeholder,
+    .form-textarea::placeholder { color: rgba(159,176,208,0.45); }
 
     .form-input:focus,
     .form-select:focus,
     .form-textarea:focus {
       outline: none;
       border-color: var(--color-primary);
+      box-shadow: 0 0 0 1px rgba(106,166,255,0.4);
     }
+
+    .form-textarea { min-height: 80px; resize: vertical; }
+
+    .form-select optgroup { color: var(--color-text-secondary); font-size: 11px; font-weight: 700; }
+    .form-select option { color: var(--color-text-primary); background: #111b2e; }
 
     .btn {
       display: inline-block;
@@ -220,28 +402,24 @@
       cursor: pointer;
       color: #081226;
       background: linear-gradient(180deg, #6aa6ff, #4c86ff);
-      box-shadow: 0 6px 16px rgba(76, 134, 255, 0.3);
+      box-shadow: 0 6px 16px rgba(76,134,255,0.3);
     }
 
-    .btn:hover {
-      background: linear-gradient(180deg, #5a96ef, #4c86ff);
-    }
+    .btn:hover { background: linear-gradient(180deg, #5a96ef, #4c86ff); }
+    .btn-block { width: 100%; text-align: center; }
+    .text-muted { color: var(--color-text-secondary); font-size: 13px; }
 
-    .btn-block {
-      width: 100%;
-      text-align: center;
-    }
-
-    .text-muted {
-      color: var(--color-text-secondary);
-      font-size: 13px;
+    .log-form-panel {
+      background: rgba(6,11,22,0.85);
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 12px;
+      padding: 12px 12px 6px 12px;
+      overflow: hidden;
     }
 
     .bottom-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       background: var(--color-bg-secondary);
       border-top: 1px solid var(--color-border);
       display: flex;
@@ -265,9 +443,7 @@
       gap: 4px;
     }
 
-    .nav-btn.active {
-      color: var(--color-primary);
-    }
+    .nav-btn.active { color: var(--color-primary); }
 
     .nav-icon {
       width: 24px;
@@ -276,81 +452,43 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(148, 163, 184, 0.2);
+      background: rgba(148,163,184,0.2);
       font-size: 14px;
     }
 
-    .nav-btn.active .nav-icon {
-      background: rgba(106, 166, 255, 0.15);
-    }
+    .nav-btn.active .nav-icon { background: rgba(106,166,255,0.15); }
   </style>
 </head>
 <body>
+
   <header class="app-header">
     <div class="header-text">
       <h1 class="app-title" id="appTitle">Finance Tracker</h1>
       <p class="app-subtitle" id="appSubtitle">Loading…</p>
     </div>
-    <button class="btn" style="padding: 8px 10px; font-size: 11px;" id="exportBtn">
-      Backup
+    <button class="quick-save-btn" id="quickSaveBtn" type="button">
+      <span id="quickSaveIcon">💾</span>
+      <span id="quickSaveLabel">Quick Save</span>
     </button>
   </header>
 
   <main class="content">
-    <!-- Dashboard -->
-    <section id="dashboardView" class="view active"></section>
-
-    <!-- Log (add transaction) -->
-    <section id="logView" class="view"></section>
-
-    <!-- Monthly breakdown -->
+    <section id="logView"     class="view active"></section>
+    <section id="budgetView"  class="view"></section>
     <section id="monthlyView" class="view"></section>
-
-    <!-- Annual overview -->
-    <section id="annualView" class="view"></section>
-
-    <!-- Planner (home/savings) -->
-    <section id="plannerView" class="view"></section>
-
-    <!-- Settings + import -->
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">Data & Settings</h2>
-      </div>
-      <div class="card-body">
-        <p class="text-muted">
-          Your data is stored locally in this browser. Use backup and restore
-          with a JSON file to move data or keep your own snapshots.
-        </p>
-        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-          <button class="btn" id="importBtn" type="button">Restore from file</button>
-          <button class="btn btn-secondary" id="resetBtn" type="button" style="
-            background: transparent;
-            color: var(--color-primary);
-            border: 1px solid var(--color-border);
-            box-shadow: none;
-          ">
-            Reset data
-          </button>
-        </div>
-        <input
-          id="importFileInput"
-          type="file"
-          accept="application/json"
-          style="display:none;"
-        />
-      </div>
-    </section>
+    <section id="annualView"  class="view"></section>
+    <section id="adminView"   class="view"></section>
+    <input id="importFileInput" type="file" accept="application/json" style="display:none;" />
   </main>
 
   <nav class="bottom-nav">
-    <button class="nav-btn active" data-view="dashboard">
-      <div class="nav-icon">📊</div>
-      <span>Dashboard</span>
-    </button>
-    <button class="nav-btn" data-view="log">
+    <button class="nav-btn active" data-view="log">
       <div class="nav-icon">➕</div>
       <span>Log</span>
+    </button>
+    <button class="nav-btn" data-view="budget">
+      <div class="nav-icon">📊</div>
+      <span>Budget</span>
     </button>
     <button class="nav-btn" data-view="monthly">
       <div class="nav-icon">📅</div>
@@ -360,9 +498,9 @@
       <div class="nav-icon">📈</div>
       <span>Annual</span>
     </button>
-    <button class="nav-btn" data-view="planner">
-      <div class="nav-icon">🏠</div>
-      <span>Planner</span>
+    <button class="nav-btn" data-view="admin">
+      <div class="nav-icon">⚙️</div>
+      <span>Admin</span>
     </button>
   </nav>
 
@@ -375,37 +513,30 @@
       estimatedTaxRate: null,
       healthPlanPerPeriod: null,
       k401PerPeriod: null,
-      categories: [
-        "DISCRETIONARY - RESTAURANTS/TAKEOUT",
-        "DISCRETIONARY - SHOPPING IMPULSE",
-        "DISCRETIONARY - GAMBLING",
-        "DISCRETIONARY - ENTERTAINMENT",
-        "DISCRETIONARY - TRAVEL",
-        "DISCRETIONARY - GIFTS/SOCIAL",
-        "DISCRETIONARY - MISC"
-      ],
-      recurringBills: [],
-      recurringSubscriptions: [],
-      recurringInvestments: []
+      recurringBills:          [],
+      recurringSubscriptions:  [],
+      recurringInvestments:    [],
+      discretionaryCategories: []
     };
 
-    let months = {};
-    let plannerState = {
-      currentHouseSavings: 0,
-      scenarios: []
-    };
+    let months       = {};
+    let plannerState = { currentHouseSavings: 0, scenarios: [] };
 
-    let activeView = "dashboard";
-    let activeMonthKey = null;
-    let saveTimeout = null;
+    let activeView         = "log";
+    let activeMonthKey     = null;
+    let saveTimeout        = null;
+    let activeFileName     = "finance-tracker-backup.json";
+    let editingBudgetItem  = null;
+    let quickSaveFlashTimeout = null;
+
+    let collapsedAdminSections = new Set(["bills", "subs", "invsts", "disc"]);
+
     const STORAGE_KEY = "financeTrackerState_v1";
 
     // ---- Helpers ----
 
     function formatMonthKey(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      return y + "-" + m;
+      return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
     }
 
     function ensureMonthExists(key) {
@@ -422,44 +553,131 @@
 
     function formatMonthLabelFromKey(key) {
       const [year, month] = key.split("-");
-      const d = new Date(Number(year), Number(month) - 1, 1);
-      return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+      return new Date(Number(year), Number(month) - 1, 1)
+        .toLocaleString(undefined, { month: "long", year: "numeric" });
+    }
+
+    function fmt(n) {
+      return "$" + Number(n || 0).toFixed(2);
+    }
+
+    function progressClass(actual, budget) {
+      if (!budget) return "unset";
+      const pct = actual / budget;
+      if (pct >= 1)   return "over";
+      if (pct >= 0.8) return "warn";
+      return "under";
+    }
+
+    function renderBucketItem(name, actual, budget) {
+      const pct = budget ? Math.min((actual / budget) * 100, 100) : 0;
+      const cls = progressClass(actual, budget);
+      const actualColor =
+        cls === "over"  ? "var(--color-danger)"  :
+        cls === "warn"  ? "var(--color-warning)" :
+        cls === "under" ? "var(--color-success)" :
+        "var(--color-primary)";
+
+      return `
+        <div class="bucket-item">
+          <div class="bucket-item-row">
+            <div class="bucket-item-name">${name}</div>
+            <div class="bucket-item-amounts">
+              <span class="bucket-item-actual" style="color:${actualColor};">${fmt(actual)}</span>
+              <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
+            </div>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getSectionArray(section) {
+      switch (section) {
+        case "bills":  return appSettings.recurringBills;
+        case "subs":   return appSettings.recurringSubscriptions;
+        case "invsts": return appSettings.recurringInvestments;
+        case "disc":   return appSettings.discretionaryCategories;
+        default: return [];
+      }
+    }
+
+    function buildCategoryOptions(selectedValue) {
+      const groups = [
+        { label: "Must Pay Bills",          items: appSettings.recurringBills },
+        { label: "Subscriptions and Other", items: appSettings.recurringSubscriptions },
+        { label: "Savings & Investments",   items: appSettings.recurringInvestments },
+        { label: "Discretionary",           items: appSettings.discretionaryCategories }
+      ];
+
+      const allEmpty = groups.every(g => g.items.length === 0);
+      if (allEmpty) {
+        return `<option value="">— No categories configured. Add them in Admin —</option>`;
+      }
+
+      return groups
+        .filter(g => g.items.length > 0)
+        .map(g => `
+          <optgroup label="${g.label}">
+            ${g.items.map(item => {
+              const sel = item.name === selectedValue ? "selected" : "";
+              return `<option value="${item.name}" ${sel}>${item.name}</option>`;
+            }).join("")}
+          </optgroup>
+        `).join("");
+    }
+
+    // ---- Quick Save ----
+
+    async function quickSave() {
+      const btn   = document.getElementById("quickSaveBtn");
+      const icon  = document.getElementById("quickSaveIcon");
+      const label = document.getElementById("quickSaveLabel");
+
+      await saveToFile(activeFileName);
+
+      btn.classList.add("saving");
+      icon.textContent  = "✓";
+      label.textContent = "Saved!";
+
+      clearTimeout(quickSaveFlashTimeout);
+      quickSaveFlashTimeout = setTimeout(() => {
+        btn.classList.remove("saving");
+        icon.textContent  = "💾";
+        label.textContent = "Quick Save";
+      }, 1800);
     }
 
     // ---- Persistence ----
 
     function buildStateObject() {
-      return {
-        appSettings,
-        months,
-        plannerState
-      };
+      return { appSettings, months, plannerState, activeFileName };
     }
 
     function applyStateObject(state) {
       if (!state) state = {};
-
-      appSettings = { ...appSettings, ...(state.appSettings || {}) };
-      months = state.months || {};
+      appSettings  = { ...appSettings, ...(state.appSettings || {}) };
+      months       = state.months || {};
       plannerState = { ...plannerState, ...(state.plannerState || {}) };
+      if (state.activeFileName) activeFileName = state.activeFileName;
 
-      if (!activeMonthKey) {
-        activeMonthKey = formatMonthKey(new Date());
-      }
+      if (!appSettings.recurringBills)          appSettings.recurringBills          = [];
+      if (!appSettings.recurringSubscriptions)  appSettings.recurringSubscriptions  = [];
+      if (!appSettings.recurringInvestments)    appSettings.recurringInvestments    = [];
+      if (!appSettings.discretionaryCategories) appSettings.discretionaryCategories = [];
+
+      if (!activeMonthKey) activeMonthKey = formatMonthKey(new Date());
       ensureMonthExists(activeMonthKey);
-
       renderAll();
     }
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          applyStateObject({});
-          return;
-        }
-        const parsed = JSON.parse(raw);
-        applyStateObject(parsed);
+        if (!raw) { applyStateObject({}); return; }
+        applyStateObject(JSON.parse(raw));
       } catch (err) {
         console.error("Failed to load state", err);
         applyStateObject({});
@@ -470,25 +688,44 @@
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
         try {
-          const state = buildStateObject();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStateObject()));
         } catch (err) {
           console.error("Failed to save state", err);
         }
       }, 400);
     }
 
-    function exportStateToFile() {
-      const state = buildStateObject();
-      const blob = new Blob([JSON.stringify(state, null, 2)], {
-        type: "application/json"
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "finance-tracker-backup.json";
+    async function saveToFile(filename) {
+      const data = JSON.stringify(buildStateObject(), null, 2);
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "JSON Backup", accept: { "application/json": [".json"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(data);
+          await writable.close();
+          activeFileName = handle.name;
+          saveState();
+          if (activeView === "admin") renderAdminView();
+          return;
+        } catch (e) {
+          if (e.name === "AbortError") return;
+        }
+      }
+
+      const blob = new Blob([data], { type: "application/json" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      activeFileName = filename;
+      saveState();
+      if (activeView === "admin") renderAdminView();
     }
 
     function importStateFromFile(file) {
@@ -496,52 +733,26 @@
       reader.onload = e => {
         try {
           const parsed = JSON.parse(e.target.result);
+          activeFileName = file.name;
           applyStateObject(parsed);
           saveState();
         } catch (err) {
-          console.error("Invalid backup file", err);
           alert("Could not import file. Please make sure it is a valid JSON backup.");
         }
       };
       reader.readAsText(file);
     }
 
-    function resetData() {
-      if (!confirm("This will clear all local data. Continue?")) return;
-      appSettings = {
-        hourlyRate: null,
-        hoursPerPeriod: 80,
-        estimatedTaxRate: null,
-        healthPlanPerPeriod: null,
-        k401PerPeriod: null,
-        categories: [...appSettings.categories],
-        recurringBills: [],
-        recurringSubscriptions: [],
-        recurringInvestments: []
-      };
-      months = {};
-      plannerState = {
-        currentHouseSavings: 0,
-        scenarios: []
-      };
-      activeMonthKey = null;
-      localStorage.removeItem(STORAGE_KEY);
-      applyStateObject({});
-    }
-
     // ---- View switching ----
 
     function switchView(viewName) {
       activeView = viewName;
-
-      document.querySelectorAll(".view").forEach(view => {
-        view.classList.toggle("active", view.id === viewName + "View");
+      document.querySelectorAll(".view").forEach(v => {
+        v.classList.toggle("active", v.id === viewName + "View");
       });
-
       document.querySelectorAll(".nav-btn").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.view === viewName);
       });
-
       renderActiveView();
     }
 
@@ -552,94 +763,27 @@
 
     function renderActiveView() {
       switch (activeView) {
-        case "dashboard":
-          renderDashboardView();
-          break;
-        case "log":
-          renderLogView();
-          break;
-        case "monthly":
-          renderMonthlyView();
-          break;
-        case "annual":
-          renderAnnualView();
-          break;
-        case "planner":
-          renderPlannerView();
-          break;
+        case "log":     renderLogView();     break;
+        case "budget":  renderBudgetView();  break;
+        case "monthly": renderMonthlyView(); break;
+        case "annual":  renderAnnualView();  break;
+        case "admin":   renderAdminView();   break;
       }
     }
 
     function renderHeader() {
-      const titleEl = document.getElementById("appTitle");
-      const subtitleEl = document.getElementById("appSubtitle");
-      titleEl.textContent = "Finance Tracker";
-
-      if (!activeMonthKey) {
-        subtitleEl.textContent = "Personal Finance";
-      } else {
-        subtitleEl.textContent =
-          formatMonthLabelFromKey(activeMonthKey) + " • Personal Finance";
-      }
+      document.getElementById("appTitle").textContent = "Finance Tracker";
+      document.getElementById("appSubtitle").textContent = activeMonthKey
+        ? formatMonthLabelFromKey(activeMonthKey) + " • Personal Finance"
+        : "Personal Finance";
     }
 
-    // ---- View renderers ----
-
-    function renderDashboardView() {
-      const container = document.getElementById("dashboardView");
-      ensureMonthExists(activeMonthKey);
-      const month = months[activeMonthKey];
-
-      // Placeholder computations
-      const totalSpent = month.transactions.reduce(
-        (sum, t) => sum + (Number(t.amount) || 0),
-        0
-      );
-      const netIncome = 0;
-      const savingsBalance = plannerState.currentHouseSavings || 0;
-
-      container.innerHTML = `
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">This Month Overview</h2>
-          </div>
-          <div class="card-body">
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-card-header">Net Income</div>
-                <div class="stat-main">
-                  <div class="stat-value">${netIncome.toFixed(2)}</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-card-header">Total Spent</div>
-                <div class="stat-main">
-                  <div class="stat-value">${totalSpent.toFixed(2)}</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-card-header">House Savings</div>
-                <div class="stat-main">
-                  <div class="stat-value">${savingsBalance.toFixed(2)}</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-card-header">Transactions</div>
-                <div class="stat-main">
-                  <div class="stat-value">${month.transactions.length}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
+    // ---- Log view ----
 
     function renderLogView() {
       const container = document.getElementById("logView");
       ensureMonthExists(activeMonthKey);
-      const month = months[activeMonthKey];
-
+      const month    = months[activeMonthKey];
       const todayISO = new Date().toISOString().slice(0, 10);
 
       container.innerHTML = `
@@ -648,27 +792,27 @@
             <h2 class="card-title">Add Transaction</h2>
           </div>
           <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Date</label>
-              <input id="logDateInput" type="date" class="form-input" value="${todayISO}">
+            <div class="log-form-panel">
+              <div class="form-group">
+                <label class="form-label">Date</label>
+                <input id="logDateInput" type="date" class="form-input" value="${todayISO}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <select id="logCategoryInput" class="form-select">
+                  ${buildCategoryOptions("")}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Amount</label>
+                <input id="logAmountInput" type="number" step="0.01" class="form-input" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Note</label>
+                <textarea id="logNoteInput" class="form-textarea" placeholder="Optional description"></textarea>
+              </div>
+              <button id="logAddBtn" class="btn btn-block" type="button">Add</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Category</label>
-              <select id="logCategoryInput" class="form-select">
-                ${appSettings.categories
-                  .map(c => `<option value="${c}">${c}</option>`)
-                  .join("")}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Amount</label>
-              <input id="logAmountInput" type="number" step="0.01" class="form-input" placeholder="0.00">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Note</label>
-              <textarea id="logNoteInput" class="form-textarea" placeholder="Optional description"></textarea>
-            </div>
-            <button id="logAddBtn" class="btn btn-block" type="button">Add</button>
           </div>
         </div>
 
@@ -677,99 +821,187 @@
             <h2 class="card-title">Recent Transactions</h2>
           </div>
           <div class="card-body">
-            ${
-              month.transactions.length === 0
-                ? '<p class="text-muted">No transactions yet this month.</p>'
-                : `
-              <ul style="list-style:none; padding:0; margin:0;">
-                ${month.transactions
-                  .slice()
-                  .reverse()
-                  .slice(0, 10)
-                  .map(t => {
-                    const dateLabel = t.dateISO || "";
-                    return `
-                      <li style="padding:6px 0; border-bottom:1px solid rgba(148,163,184,0.2);">
-                        <div style="display:flex; justify-content:space-between; gap:8px;">
-                          <div>
-                            <div style="font-size:13px;">${t.category}</div>
-                            <div class="text-muted" style="font-size:11px;">${dateLabel}${
-                              t.note ? " • " + t.note : ""
-                            }</div>
+            ${month.transactions.length === 0
+              ? '<p class="text-muted">No transactions yet this month.</p>'
+              : `<ul style="list-style:none; padding:0; margin:0;">
+                  ${month.transactions.slice().reverse().slice(0, 10).map(t => `
+                    <li style="padding:8px 0; border-bottom:1px solid rgba(148,163,184,0.12);">
+                      <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                        <div>
+                          <div style="font-size:13px; color:var(--color-text-primary);">${t.category}</div>
+                          <div class="text-muted" style="font-size:11px; margin-top:2px;">
+                            ${t.dateISO}${t.note ? " • " + t.note : ""}
                           </div>
-                          <div style="font-weight:600;">${Number(t.amount).toFixed(2)}</div>
                         </div>
-                      </li>
-                    `;
-                  })
-                  .join("")}
-              </ul>
-            `
+                        <div style="font-size:14px; font-weight:700; color:var(--color-primary); white-space:nowrap;">
+                          ${fmt(t.amount)}
+                        </div>
+                      </div>
+                    </li>
+                  `).join("")}
+                </ul>`
             }
           </div>
         </div>
       `;
 
-      document
-        .getElementById("logAddBtn")
-        .addEventListener("click", () => {
-          const dateVal = document.getElementById("logDateInput").value;
-          const category = document.getElementById("logCategoryInput").value;
-          const amount = Number(
-            document.getElementById("logAmountInput").value || 0
-          );
-          const note = document.getElementById("logNoteInput").value.trim();
+      document.getElementById("logAddBtn").addEventListener("click", () => {
+        const dateVal  = document.getElementById("logDateInput").value;
+        const category = document.getElementById("logCategoryInput").value;
+        const amount   = Number(document.getElementById("logAmountInput").value || 0);
+        const note     = document.getElementById("logNoteInput").value.trim();
 
-          if (!dateVal || !category || !amount) {
-            alert("Please fill date, category, and amount.");
-            return;
-          }
+        if (!dateVal || !category || !amount) {
+          alert("Please fill in date, category, and amount.");
+          return;
+        }
 
-          const tx = {
-            id:
-              (window.crypto && crypto.randomUUID && crypto.randomUUID()) ||
-              String(Date.now()),
-            dateISO: dateVal,
-            category,
-            amount,
-            note
-          };
-
-          month.transactions.push(tx);
-          saveState();
-          renderLogView();
-          renderDashboardView();
+        month.transactions.push({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          dateISO: dateVal,
+          category,
+          amount,
+          note
         });
+
+        saveState();
+        renderLogView();
+      });
     }
+
+    // ---- Budget view ----
+
+    function renderBudgetView() {
+      const container = document.getElementById("budgetView");
+      ensureMonthExists(activeMonthKey);
+      const month = months[activeMonthKey];
+
+      const bills  = appSettings.recurringBills          || [];
+      const subs   = appSettings.recurringSubscriptions  || [];
+      const invsts = appSettings.recurringInvestments    || [];
+      const disc   = appSettings.discretionaryCategories || [];
+
+      const billActuals  = month.billActuals         || {};
+      const subActuals   = month.subscriptionActuals || {};
+      const invstActuals = month.investmentActuals   || {};
+
+      const discTotals = {};
+      (month.transactions || []).forEach(t => {
+        const match = disc.find(d => d.name === t.category);
+        if (match) discTotals[t.category] = (discTotals[t.category] || 0) + Number(t.amount || 0);
+      });
+      const totalDiscActual = Object.values(discTotals).reduce((s, v) => s + v, 0);
+      const totalDiscBudget = disc.reduce((s, d) => s + Number(d.budgetAmount || 0), 0);
+
+      const totalBillsBudget = bills.reduce((s, b)  => s + Number(b.budgetAmount || 0), 0);
+      const totalBillsActual = bills.reduce((s, b)  => s + Number(billActuals[b.name] || 0), 0);
+      const totalSubsBudget  = subs.reduce((s, b)   => s + Number(b.budgetAmount || 0), 0);
+      const totalSubsActual  = subs.reduce((s, b)   => s + Number(subActuals[b.name] || 0), 0);
+      const totalInvstBudget = invsts.reduce((s, b) => s + Number(b.budgetAmount || 0), 0);
+      const totalInvstActual = invsts.reduce((s, b) => s + Number(invstActuals[b.name] || 0), 0);
+
+      container.innerHTML = `
+        <div class="bucket-summary-grid">
+          <div class="bucket-summary-card">
+            <div class="bucket-summary-label">Must Pay</div>
+            <div class="bucket-summary-value">${fmt(totalBillsActual)}</div>
+            <div class="bucket-summary-sub">of ${fmt(totalBillsBudget)}</div>
+          </div>
+          <div class="bucket-summary-card">
+            <div class="bucket-summary-label">Subs &amp; Other</div>
+            <div class="bucket-summary-value">${fmt(totalSubsActual)}</div>
+            <div class="bucket-summary-sub">of ${fmt(totalSubsBudget)}</div>
+          </div>
+          <div class="bucket-summary-card">
+            <div class="bucket-summary-label">Savings</div>
+            <div class="bucket-summary-value">${fmt(totalInvstActual)}</div>
+            <div class="bucket-summary-sub">of ${fmt(totalInvstBudget)}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">🏠 Must Pay</h2></div>
+          <div class="card-body">
+            <div class="bucket-section">
+              <div class="bucket-section-header">
+                <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
+                <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
+              </div>
+              ${bills.length === 0
+                ? '<p class="empty-bucket">No bills configured yet — add them in Admin.</p>'
+                : bills.map(b => renderBucketItem(b.name, billActuals[b.name] || 0, b.budgetAmount)).join("")}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">📱 Subscriptions and Other</h2></div>
+          <div class="card-body">
+            <div class="bucket-section">
+              <div class="bucket-section-header">
+                <span class="bucket-section-title">Subscriptions and Other</span>
+                <span class="bucket-section-totals"><span>${fmt(totalSubsActual)}</span> / ${fmt(totalSubsBudget)}</span>
+              </div>
+              ${subs.length === 0
+                ? '<p class="empty-bucket">No subscriptions configured yet — add them in Admin.</p>'
+                : subs.map(b => renderBucketItem(b.name, subActuals[b.name] || 0, b.budgetAmount)).join("")}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">💰 Savings &amp; Investments</h2></div>
+          <div class="card-body">
+            <div class="bucket-section">
+              <div class="bucket-section-header">
+                <span class="bucket-section-title">Contributions This Month</span>
+                <span class="bucket-section-totals"><span>${fmt(totalInvstActual)}</span> / ${fmt(totalInvstBudget)}</span>
+              </div>
+              ${invsts.length === 0
+                ? '<p class="empty-bucket">No savings goals configured yet — add them in Admin.</p>'
+                : invsts.map(b => renderBucketItem(b.name, invstActuals[b.name] || 0, b.budgetAmount)).join("")}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">🛍️ Discretionary Spending</h2></div>
+          <div class="card-body">
+            <div class="bucket-section-header" style="margin-bottom:10px;">
+              <span class="bucket-section-title">vs Budget</span>
+              <span class="bucket-section-totals"><span>${fmt(totalDiscActual)}</span> / ${totalDiscBudget ? fmt(totalDiscBudget) : "—"}</span>
+            </div>
+            ${disc.length === 0
+              ? '<p class="empty-bucket">No discretionary categories configured — add them in Admin.</p>'
+              : disc.map(d => renderBucketItem(d.name, discTotals[d.name] || 0, d.budgetAmount)).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    // ---- Monthly view ----
 
     function renderMonthlyView() {
       const container = document.getElementById("monthlyView");
       ensureMonthExists(activeMonthKey);
       const month = months[activeMonthKey];
-
-      const totalSpent = month.transactions.reduce(
-        (sum, t) => sum + (Number(t.amount) || 0),
-        0
-      );
+      const totalSpent = month.transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
       container.innerHTML = `
         <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Monthly Breakdown</h2>
-          </div>
+          <div class="card-header"><h2 class="card-title">Monthly Breakdown</h2></div>
           <div class="card-body">
-            <p class="text-muted">
-              This is a placeholder summary. You can expand this to show
-              bills vs actuals, subscriptions, investments, and per-category totals.
-            </p>
+            <p class="text-muted">Full bills vs actuals, subscriptions, investments, and per-category totals coming soon.</p>
             <p style="margin-top:8px;">
               <strong>Total transactions:</strong> ${month.transactions.length}<br>
-              <strong>Total spent:</strong> ${totalSpent.toFixed(2)}
+              <strong>Total spent:</strong> ${fmt(totalSpent)}
             </p>
           </div>
         </div>
       `;
     }
+
+    // ---- Annual view ----
 
     function renderAnnualView() {
       const container = document.getElementById("annualView");
@@ -777,88 +1009,271 @@
 
       container.innerHTML = `
         <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Annual Overview</h2>
-          </div>
+          <div class="card-header"><h2 class="card-title">Annual Overview</h2></div>
           <div class="card-body">
-            ${
-              monthKeys.length === 0
-                ? '<p class="text-muted">No months with data yet.</p>'
-                : `
-              <ul style="list-style:none; padding:0; margin:0;">
-                ${monthKeys
-                  .map(key => {
-                    const m = months[key];
-                    const totalSpent = m.transactions.reduce(
-                      (sum, t) => sum + (Number(t.amount) || 0),
-                      0
-                    );
+            ${monthKeys.length === 0
+              ? '<p class="text-muted">No months with data yet.</p>'
+              : `<ul style="list-style:none; padding:0; margin:0;">
+                  ${monthKeys.map(key => {
+                    const total = months[key].transactions.reduce((s, t) => s + (Number(t.amount) || 0), 0);
                     return `
-                      <li style="padding:6px 0; border-bottom:1px solid rgba(148,163,184,0.2);">
+                      <li style="padding:8px 0; border-bottom:1px solid rgba(148,163,184,0.12);">
                         <div style="display:flex; justify-content:space-between; gap:8px;">
                           <div>${formatMonthLabelFromKey(key)}</div>
-                          <div style="font-weight:600;">${totalSpent.toFixed(2)}</div>
+                          <div style="font-weight:700; color:var(--color-primary);">${fmt(total)}</div>
                         </div>
-                      </li>
-                    `;
-                  })
-                  .join("")}
-              </ul>
-            `
+                      </li>`;
+                  }).join("")}
+                </ul>`
             }
           </div>
         </div>
       `;
     }
 
-    function renderPlannerView() {
-      const container = document.getElementById("plannerView");
+    // ---- Admin view ----
+
+    function renderAdminView() {
+      const container = document.getElementById("adminView");
+      const bills  = appSettings.recurringBills          || [];
+      const subs   = appSettings.recurringSubscriptions  || [];
+      const invsts = appSettings.recurringInvestments    || [];
+      const disc   = appSettings.discretionaryCategories || [];
+
       container.innerHTML = `
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Planner</h2>
+            <h2 class="card-title">💾 Data Management</h2>
           </div>
           <div class="card-body">
-            <p class="text-muted">
-              This is a placeholder for your home purchase planner and other savings goals.
-              You can add scenario cards, closing-cost estimates, and monthly payment breakdowns here.
-            </p>
-            <p style="margin-top:8px;">
-              <strong>Current house savings (placeholder):</strong>
-              ${plannerState.currentHouseSavings.toFixed(2)}
+            <div class="file-info-row">
+              <span class="file-info-label">Active file</span>
+              <span class="file-info-name">${activeFileName}</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+              <button class="btn" id="adminOverwriteBtn" type="button">💾 Overwrite File</button>
+              <button id="adminLoadFileBtn" type="button" style="
+                background: rgba(106,166,255,0.12);
+                color: var(--color-primary);
+                border: 1px solid var(--color-border);
+                border-radius: 12px;
+                padding: 10px 16px;
+                font-size: 14px;
+                font-weight: 700;
+                cursor: pointer;
+                font-family: inherit;
+              ">📂 Load Different File</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input id="adminSaveAsInput" type="text" class="admin-input"
+                style="flex:1; min-width:160px;"
+                placeholder="New filename (e.g. march-backup)">
+              <button class="btn" id="adminSaveAsBtn" type="button" style="white-space:nowrap;">Save As New File</button>
+            </div>
+            <p class="text-muted" style="font-size:11px; margin-top:10px; line-height:1.6;">
+              <strong>Quick Save</strong> (header button) and <strong>Overwrite File</strong> both save to the active file shown above.
+              On Chrome/Edge a system dialog opens; on Safari/Firefox a download is triggered.
             </p>
           </div>
         </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">✏️ Edit Budget</h2>
+          </div>
+          <div class="card-body">
+            ${renderAdminBudgetSection("bills",  "🏠 Must Pay Bills",            bills,  false)}
+            ${renderAdminBudgetSection("subs",   "📱 Subscriptions and Other",   subs,   false)}
+            ${renderAdminBudgetSection("invsts", "💰 Savings &amp; Investments", invsts, false)}
+            ${renderAdminBudgetSection("disc",   "🛍️ Discretionary Categories", disc,   true)}
+          </div>
+        </div>
       `;
+    }
+
+    function renderAdminBudgetSection(section, title, items, isDisc) {
+      const isCollapsed = collapsedAdminSections.has(section);
+      const total = items.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+      const meta  = isDisc
+        ? `${items.length} categor${items.length !== 1 ? "ies" : "y"}`
+        : `${items.length} item${items.length !== 1 ? "s" : ""} · ${fmt(total)}/mo`;
+
+      return `
+        <div class="admin-section" style="margin-bottom:4px;">
+          <div class="admin-section-header" data-toggle="${section}">
+            <div class="admin-section-left">
+              <span class="admin-section-title">${title}</span>
+              <span class="admin-section-meta">${meta}</span>
+            </div>
+            <span class="admin-section-toggle">${isCollapsed ? "▶" : "▼"}</span>
+          </div>
+          ${isCollapsed ? "" : `
+            <div class="admin-section-body">
+              ${isDisc ? `
+                <p style="font-size:11px; color:var(--color-text-secondary); margin:0 0 8px 0; line-height:1.5;">
+                  These categories appear in the Log tab dropdown. Setting a monthly budget enables progress tracking on the Budget tab.
+                </p>
+              ` : ""}
+              ${items.length === 0
+                ? `<p class="empty-bucket" style="padding:8px 0 4px 0;">No items yet — add one below.</p>`
+                : items.map(item => renderAdminBudgetItemRow(section, item, isDisc)).join("")
+              }
+              <div class="admin-add-row" data-section="${section}">
+                <input class="admin-input admin-add-name" type="text"
+                  placeholder="${isDisc ? "Category name" : "Item name"}"
+                  style="flex:1; min-width:120px;">
+                <input class="admin-input admin-add-budget" type="number"
+                  placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}"
+                  style="width:110px;">
+                <button class="admin-btn admin-btn-success" data-action="add" data-section="${section}">+ Add</button>
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderAdminBudgetItemRow(section, item, isDisc) {
+      const isEditing = editingBudgetItem
+        && editingBudgetItem.section === section
+        && editingBudgetItem.id === item.id;
+
+      if (isEditing) {
+        return `
+          <div class="admin-item-edit-row" data-id="${item.id}">
+            <input class="admin-input admin-edit-name" type="text" value="${item.name}"
+              placeholder="Name" style="flex:1; min-width:120px;">
+            <input class="admin-input admin-edit-budget" type="number" value="${item.budgetAmount || ""}"
+              placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
+            <button class="admin-btn admin-btn-success" data-action="save" data-section="${section}" data-id="${item.id}">✓ Save</button>
+            <button class="admin-btn" data-action="cancel">✕</button>
+          </div>
+        `;
+      }
+
+      const budgetDisplay = item.budgetAmount
+        ? fmt(item.budgetAmount)
+        : (isDisc ? "No budget" : "—");
+
+      return `
+        <div class="admin-item-row">
+          <div class="admin-item-name">${item.name}</div>
+          <div class="admin-item-budget" style="${!item.budgetAmount && isDisc ? "color:var(--color-text-secondary); font-weight:400;" : ""}">${budgetDisplay}</div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="admin-btn" data-action="edit" data-section="${section}" data-id="${item.id}">✏️</button>
+            <button class="admin-btn admin-btn-danger" data-action="delete" data-section="${section}" data-id="${item.id}">🗑️</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ---- Admin event delegation ----
+
+    function handleAdminClick(e) {
+      const target = e.target;
+
+      if (target.id === "adminOverwriteBtn") { saveToFile(activeFileName); return; }
+
+      if (target.id === "adminSaveAsBtn") {
+        const input = document.getElementById("adminSaveAsInput");
+        const name  = (input ? input.value.trim() : "") || "";
+        if (!name) { alert("Please enter a filename."); return; }
+        saveToFile(name.endsWith(".json") ? name : name + ".json");
+        return;
+      }
+
+      if (target.id === "adminLoadFileBtn") {
+        document.getElementById("importFileInput").click();
+        return;
+      }
+
+      const toggleHeader = target.closest("[data-toggle]");
+      if (toggleHeader) {
+        const section = toggleHeader.dataset.toggle;
+        collapsedAdminSections.has(section)
+          ? collapsedAdminSections.delete(section)
+          : collapsedAdminSections.add(section);
+        renderAdminView();
+        return;
+      }
+
+      const editBtn = target.closest("[data-action='edit']");
+      if (editBtn) {
+        editingBudgetItem = { section: editBtn.dataset.section, id: editBtn.dataset.id };
+        renderAdminView();
+        return;
+      }
+
+      const cancelBtn = target.closest("[data-action='cancel']");
+      if (cancelBtn) { editingBudgetItem = null; renderAdminView(); return; }
+
+      const saveBtn = target.closest("[data-action='save']");
+      if (saveBtn) {
+        const section = saveBtn.dataset.section;
+        const id      = saveBtn.dataset.id;
+        const editRow = document.querySelector(`.admin-item-edit-row[data-id="${id}"]`);
+        if (!editRow) return;
+        const newName   = editRow.querySelector(".admin-edit-name").value.trim();
+        const newBudget = Number(editRow.querySelector(".admin-edit-budget").value || 0);
+        if (!newName) { alert("Please enter a name."); return; }
+        const arr  = getSectionArray(section);
+        const item = arr.find(i => i.id === id);
+        if (item) { item.name = newName; item.budgetAmount = newBudget; }
+        editingBudgetItem = null;
+        saveState();
+        renderAdminView();
+        return;
+      }
+
+      const deleteBtn = target.closest("[data-action='delete']");
+      if (deleteBtn) {
+        const section = deleteBtn.dataset.section;
+        const id      = deleteBtn.dataset.id;
+        if (!confirm("Delete this item?")) return;
+        const arr = getSectionArray(section);
+        const idx = arr.findIndex(i => i.id === id);
+        if (idx !== -1) arr.splice(idx, 1);
+        saveState();
+        renderAdminView();
+        return;
+      }
+
+      const addBtn = target.closest("[data-action='add']");
+      if (addBtn) {
+        const section = addBtn.dataset.section;
+        const addRow  = document.querySelector(`.admin-add-row[data-section="${section}"]`);
+        if (!addRow) return;
+        const name   = addRow.querySelector(".admin-add-name").value.trim();
+        const budget = Number(addRow.querySelector(".admin-add-budget").value || 0);
+        if (!name) { alert("Please enter a name."); return; }
+        getSectionArray(section).push({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          name,
+          budgetAmount: budget
+        });
+        saveState();
+        renderAdminView();
+        return;
+      }
     }
 
     // ---- Init ----
 
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".nav-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const view = btn.dataset.view;
-          switchView(view);
-        });
+        btn.addEventListener("click", () => switchView(btn.dataset.view));
       });
 
-      document
-        .getElementById("exportBtn")
-        .addEventListener("click", exportStateToFile);
+      document.getElementById("quickSaveBtn").addEventListener("click", quickSave);
 
       const importInput = document.getElementById("importFileInput");
-      document.getElementById("importBtn").addEventListener("click", () => {
-        importInput.click();
-      });
       importInput.addEventListener("change", e => {
         const file = e.target.files && e.target.files[0];
         if (file) importStateFromFile(file);
         importInput.value = "";
       });
 
-      document
-        .getElementById("resetBtn")
-        .addEventListener("click", resetData);
+      document.getElementById("adminView").addEventListener("click", handleAdminClick);
 
       loadState();
     });
