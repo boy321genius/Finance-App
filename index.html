@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="description" content="Local-first personal finance tracker" />
 
-  <link rel="manifest" href='data:application/manifest+json,{
+  <link rel="manifest" href='application/manifest+json,{
     "name":"Finance Tracker",
     "short_name":"Finance",
     "description":"Local-first personal finance tracker",
@@ -20,7 +20,7 @@
     "background_color":"#0b1220",
     "theme_color":"#0b1220",
     "orientation":"portrait",
-    "icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22%3E%3Crect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230b1220%22/%3E%3Ctext x=%2290%22 y=%22125%22 font-size=%22100%22 text-anchor=%22middle%22 fill=%22%23ffffff%22%3E$%3C/text%3E%3C/svg%3E","sizes":"180x180","type":"image/svg+xml"}]
+    "icons":[{"src":"image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22%3E%3Crect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230b1220%22/%3E%3Ctext x=%2290%22 y=%22125%22 font-size=%22100%22 text-anchor=%22middle%22 fill=%22%23ffffff%22%3E$%3C/text%3E%3C/svg%3E","sizes":"180x180","type":"image/svg+xml"}]
   }' />
 
   <style>
@@ -84,7 +84,6 @@
     }
 
     .quick-save-btn:hover { background: rgba(106,166,255,0.2); }
-
     .quick-save-btn.saving {
       color: var(--color-success);
       border-color: rgba(74,222,128,0.3);
@@ -502,57 +501,47 @@
   <script>
 
     // ---- Default seed data ----
-    // Bills & Subs use national average estimates; Disc stays at $0 (too personal to pre-fill)
 
     const DEFAULT_BILLS = [
-      { name: "Rent / Mortgage",               budgetAmount: 1500 },
-      { name: "Electric",                       budgetAmount: 135  },
-      { name: "Water",                          budgetAmount: 35   },
-      { name: "Gas / Heat",                     budgetAmount: 94   },
-      { name: "Internet",                       budgetAmount: 70   },
-      { name: "Cell Phone",                     budgetAmount: 80   },
-      { name: "Car Payment",                    budgetAmount: 500  },
-      { name: "Car Insurance",                  budgetAmount: 150  },
-      { name: "Health Insurance",               budgetAmount: 400  },
-      { name: "Renter's / Home Insurance",      budgetAmount: 30   },
-      { name: "Student Loan Payment",           budgetAmount: 400  },
-      { name: "Minimum Credit Card Payment",    budgetAmount: 100  }
+      { name: "Rent / Mortgage",            budgetAmount: 1500 },
+      { name: "Electric",                   budgetAmount: 135  },
+      { name: "Water",                      budgetAmount: 35   },
+      { name: "Gas / Heat",                 budgetAmount: 94   },
+      { name: "Internet",                   budgetAmount: 70   },
+      { name: "Cell Phone",                 budgetAmount: 80   },
+      { name: "Car Payment",                budgetAmount: 500  },
+      { name: "Car Insurance",              budgetAmount: 150  },
+      { name: "Health Insurance",           budgetAmount: 400  },
+      { name: "Renter's / Home Insurance",  budgetAmount: 30   },
+      { name: "Student Loan Payment",       budgetAmount: 400  },
+      { name: "Minimum Credit Card Payment",budgetAmount: 100  }
     ].map(i => ({ ...i, id: i.name }));
 
     const DEFAULT_SUBS = [
-      { name: "Spotify / Music",                budgetAmount: 12   },
-      { name: "Netflix",                        budgetAmount: 18   },
-      { name: "Hulu / Streaming",               budgetAmount: 18   },
-      { name: "YouTube Premium",                budgetAmount: 14   },
-      { name: "iCloud / Google One Storage",    budgetAmount: 3    },
-      { name: "Gym Membership",                 budgetAmount: 45   },
-      { name: "Amazon Prime",                   budgetAmount: 15   },
-      { name: "News / Magazine Subscription",   budgetAmount: 10   }
+      { name: "Spotify / Music",             budgetAmount: 12  },
+      { name: "Netflix",                     budgetAmount: 18  },
+      { name: "Hulu / Streaming",            budgetAmount: 18  },
+      { name: "YouTube Premium",             budgetAmount: 14  },
+      { name: "iCloud / Google One Storage", budgetAmount: 3   },
+      { name: "Gym Membership",              budgetAmount: 45  },
+      { name: "Amazon Prime",                budgetAmount: 15  },
+      { name: "News / Magazine Subscription",budgetAmount: 10  }
     ].map(i => ({ ...i, id: i.name }));
 
     const DEFAULT_INVESTMENTS = [
-      { name: "Emergency Fund",                 budgetAmount: 200  },
-      { name: "401(k) / IRA Contribution",      budgetAmount: 500  },
-      { name: "Brokerage / Investing",          budgetAmount: 200  },
-      { name: "House Down Payment Fund",        budgetAmount: 300  },
-      { name: "Vacation Fund",                  budgetAmount: 100  },
-      { name: "General Savings",                budgetAmount: 200  }
+      { name: "Emergency Fund",            budgetAmount: 200 },
+      { name: "401(k) / IRA Contribution", budgetAmount: 500 },
+      { name: "Brokerage / Investing",     budgetAmount: 200 },
+      { name: "House Down Payment Fund",   budgetAmount: 300 },
+      { name: "Vacation Fund",             budgetAmount: 100 },
+      { name: "General Savings",           budgetAmount: 200 }
     ].map(i => ({ ...i, id: i.name }));
 
-    // Discretionary intentionally stays at $0 — amounts are too personal to assume
     const DEFAULT_DISC = [
-      "Restaurants / Takeout",
-      "Groceries",
-      "Gas / Fuel",
-      "Shopping / Clothing",
-      "Entertainment / Going Out",
-      "Personal Care / Haircut",
-      "Gifts / Holidays",
-      "Pet Care",
-      "Travel",
-      "Home Supplies / Household",
-      "Medical / Out-of-Pocket",
-      "Misc"
+      "Restaurants / Takeout", "Groceries", "Gas / Fuel",
+      "Shopping / Clothing", "Entertainment / Going Out",
+      "Personal Care / Haircut", "Gifts / Holidays", "Pet Care",
+      "Travel", "Home Supplies / Household", "Medical / Out-of-Pocket", "Misc"
     ].map(name => ({ id: name, name, budgetAmount: 0 }));
 
     // ---- Global state ----
@@ -593,10 +582,7 @@
       if (!months[key]) {
         months[key] = {
           meta: { label: key },
-          transactions: [],
-          billActuals: {},
-          subscriptionActuals: {},
-          investmentActuals: {}
+          transactions: []
         };
       }
     }
@@ -652,6 +638,19 @@
         case "disc":   return appSettings.discretionaryCategories;
         default: return [];
       }
+    }
+
+    // ---- Single source of truth: compute actuals from transactions ----
+    // Every category across all four buckets is resolved the same way —
+    // sum all logged transactions whose category name matches.
+
+    function computeActuals(transactions) {
+      const totals = {};
+      (transactions || []).forEach(t => {
+        if (!t.category) return;
+        totals[t.category] = (totals[t.category] || 0) + Number(t.amount || 0);
+      });
+      return totals;
     }
 
     function buildCategoryOptions(selectedValue) {
@@ -713,7 +712,6 @@
       plannerState = { ...plannerState, ...(state.plannerState || {}) };
       if (state.activeFileName) activeFileName = state.activeFileName;
 
-      // Seed defaults only on first-ever load (empty arrays)
       if (!appSettings.recurringBills          || appSettings.recurringBills.length          === 0) appSettings.recurringBills          = DEFAULT_BILLS.map(i => ({ ...i }));
       if (!appSettings.recurringSubscriptions  || appSettings.recurringSubscriptions.length  === 0) appSettings.recurringSubscriptions  = DEFAULT_SUBS.map(i => ({ ...i }));
       if (!appSettings.recurringInvestments    || appSettings.recurringInvestments.length    === 0) appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
@@ -932,24 +930,20 @@
       const invsts = appSettings.recurringInvestments    || [];
       const disc   = appSettings.discretionaryCategories || [];
 
-      const billActuals  = month.billActuals         || {};
-      const subActuals   = month.subscriptionActuals || {};
-      const invstActuals = month.investmentActuals   || {};
-
-      const discTotals = {};
-      (month.transactions || []).forEach(t => {
-        const match = disc.find(d => d.name === t.category);
-        if (match) discTotals[t.category] = (discTotals[t.category] || 0) + Number(t.amount || 0);
-      });
-      const totalDiscActual = Object.values(discTotals).reduce((s, v) => s + v, 0);
-      const totalDiscBudget = disc.reduce((s, d) => s + Number(d.budgetAmount || 0), 0);
+      // All actuals derived from logged transactions — single source of truth
+      const actuals = computeActuals(month.transactions);
 
       const totalBillsBudget = bills.reduce((s, b)  => s + Number(b.budgetAmount || 0), 0);
-      const totalBillsActual = bills.reduce((s, b)  => s + Number(billActuals[b.name] || 0), 0);
+      const totalBillsActual = bills.reduce((s, b)  => s + (actuals[b.name] || 0), 0);
+
       const totalSubsBudget  = subs.reduce((s, b)   => s + Number(b.budgetAmount || 0), 0);
-      const totalSubsActual  = subs.reduce((s, b)   => s + Number(subActuals[b.name] || 0), 0);
+      const totalSubsActual  = subs.reduce((s, b)   => s + (actuals[b.name] || 0), 0);
+
       const totalInvstBudget = invsts.reduce((s, b) => s + Number(b.budgetAmount || 0), 0);
-      const totalInvstActual = invsts.reduce((s, b) => s + Number(invstActuals[b.name] || 0), 0);
+      const totalInvstActual = invsts.reduce((s, b) => s + (actuals[b.name] || 0), 0);
+
+      const totalDiscBudget  = disc.reduce((s, d)   => s + Number(d.budgetAmount || 0), 0);
+      const totalDiscActual  = disc.reduce((s, d)   => s + (actuals[d.name] || 0), 0);
 
       container.innerHTML = `
         <div class="bucket-summary-grid">
@@ -978,7 +972,7 @@
                 <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
                 <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
               </div>
-              ${bills.map(b => renderBucketItem(b.name, billActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${bills.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -991,7 +985,7 @@
                 <span class="bucket-section-title">Subscriptions and Other</span>
                 <span class="bucket-section-totals"><span>${fmt(totalSubsActual)}</span> / ${fmt(totalSubsBudget)}</span>
               </div>
-              ${subs.map(b => renderBucketItem(b.name, subActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${subs.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -1004,7 +998,7 @@
                 <span class="bucket-section-title">Contributions This Month</span>
                 <span class="bucket-section-totals"><span>${fmt(totalInvstActual)}</span> / ${fmt(totalInvstBudget)}</span>
               </div>
-              ${invsts.map(b => renderBucketItem(b.name, invstActuals[b.name] || 0, b.budgetAmount)).join("")}
+              ${invsts.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
             </div>
           </div>
         </div>
@@ -1018,7 +1012,7 @@
             </div>
             ${disc.length === 0
               ? '<p class="empty-bucket">No discretionary categories configured — add them in Admin.</p>'
-              : disc.map(d => renderBucketItem(d.name, discTotals[d.name] || 0, d.budgetAmount)).join("")}
+              : disc.map(d => renderBucketItem(d.name, actuals[d.name] || 0, d.budgetAmount)).join("")}
           </div>
         </div>
       `;
