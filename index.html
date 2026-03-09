@@ -252,6 +252,32 @@
     .insight-row-value { font-weight: 700; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
     .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
 
+    /* ── Month navigator ── */
+    .month-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(10,19,38,0.7); border: 1px solid var(--color-border);
+      border-radius: 14px; padding: 10px 14px; margin-bottom: 16px;
+    }
+    .month-nav-btn {
+      background: rgba(106,166,255,0.1); border: 1px solid rgba(106,166,255,0.2);
+      border-radius: 9px; padding: 6px 14px; font-size: 18px; line-height: 1;
+      color: var(--color-primary); cursor: pointer; font-family: inherit;
+      transition: background .15s; user-select: none;
+    }
+    .month-nav-btn:hover  { background: rgba(106,166,255,0.22); }
+    .month-nav-btn:active { background: rgba(106,166,255,0.32); }
+    .month-nav-btn:disabled { opacity: .3; cursor: default; pointer-events: none; }
+    .month-nav-center {
+      flex: 1; text-align: center; padding: 0 10px;
+    }
+    .month-nav-label {
+      font-size: 15px; font-weight: 700; color: var(--color-text-primary); display: block;
+    }
+    .month-nav-sub {
+      font-size: 10px; font-weight: 500; color: var(--color-text-secondary);
+      margin-top: 2px; display: block; letter-spacing: .3px;
+    }
+
     /* ── Bottom nav ── */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -364,9 +390,10 @@ let quickSaveFlashTimeout  = null;
 let collapsedAdminSections = new Set(["bills","subs","invsts","disc"]);
 
 // Session-only (not persisted)
-let editingTxId = null;
-let txFilterCat = "";
-let txSortOrder = "newest";
+let editingTxId    = null;
+let txFilterCat    = "";
+let txSortOrder    = "newest";
+let monthlyViewKey = null;   // which month the Monthly tab is showing
 
 const STORAGE_KEY = "financeTrackerState_v1";
 
@@ -478,6 +505,35 @@ async function quickSave() {
 
 function buildStateObject() { return { appSettings, months, plannerState, activeFileName }; }
 
+// Scans every month bucket and moves transactions to the correct bucket
+// based on their dateISO. Fixes any transactions stored in the wrong month.
+function migrateMisplacedTransactions() {
+  let changed = false;
+  Object.keys(months).forEach(monthKey => {
+    if (!Array.isArray(months[monthKey].transactions)) {
+      months[monthKey].transactions = [];
+      return;
+    }
+    const misplaced = [];
+    months[monthKey].transactions = months[monthKey].transactions.filter(tx => {
+      if (!tx.dateISO) return true;
+      const [y, m] = tx.dateISO.split("-");
+      const correctKey = y + "-" + m;
+      if (correctKey !== monthKey) {
+        misplaced.push({ tx, correctKey });
+        changed = true;
+        return false; // pull out of wrong bucket
+      }
+      return true;
+    });
+    misplaced.forEach(({ tx, correctKey }) => {
+      ensureMonthExists(correctKey);
+      months[correctKey].transactions.push(tx);
+    });
+  });
+  if (changed) saveState();
+}
+
 function applyStateObject(state) {
   if (!state) state = {};
   appSettings  = { ...appSettings, ...(state.appSettings  || {}) };
@@ -490,7 +546,10 @@ function applyStateObject(state) {
   if (!appSettings.recurringInvestments?.length)    appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
   if (!appSettings.discretionaryCategories?.length) appSettings.discretionaryCategories = DEFAULT_DISC.map(i => ({ ...i }));
 
+  migrateMisplacedTransactions(); // fix any transactions in the wrong month bucket
+
   if (!activeMonthKey) activeMonthKey = formatMonthKey(new Date());
+  if (!monthlyViewKey) monthlyViewKey = activeMonthKey;
   ensureMonthExists(activeMonthKey);
   renderAll();
 }
@@ -580,9 +639,14 @@ function renderLogView() {
   const month    = months[activeMonthKey];
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  const usedCats = [...new Set(month.transactions.map(t => t.category).filter(Boolean))].sort();
+  // Aggregate ALL transactions across every month bucket for "All Transactions"
+  const allTxs = Object.entries(months).flatMap(([mk, mo]) =>
+    (mo?.transactions || []).map(t => ({ ...t, _monthKey: mk }))
+  );
 
-  let filtered = month.transactions.filter(t => !txFilterCat || t.category === txFilterCat);
+  const usedCats = [...new Set(allTxs.map(t => t.category).filter(Boolean))].sort();
+
+  let filtered = allTxs.filter(t => !txFilterCat || t.category === txFilterCat);
   filtered = [...filtered].sort((a, b) => {
     if (txSortOrder === "newest")      return b.dateISO.localeCompare(a.dateISO) || b.id.localeCompare(a.id);
     if (txSortOrder === "oldest")      return a.dateISO.localeCompare(b.dateISO);
@@ -591,9 +655,12 @@ function renderLogView() {
     return 0;
   });
 
-  const recent = [...month.transactions]
+  // Recent = last 5 across ALL months
+  const recent = [...allTxs]
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO) || b.id.localeCompare(a.id))
     .slice(0, 5);
+
+  const totalCount = allTxs.length;
 
   container.innerHTML = `
     <div class="card">
@@ -624,12 +691,12 @@ function renderLogView() {
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">Recent Transactions</h2>
-        <span class="tx-count-badge">${month.transactions.length} total</span>
+        <span class="tx-count-badge">${totalCount} total</span>
       </div>
       <div class="card-body">
         ${recent.length === 0
-          ? '<p class="text-muted">No transactions yet this month.</p>'
-          : `<ul class="tx-list">${recent.map(t => renderTxRow(t)).join("")}</ul>`}
+          ? '<p class="text-muted">No transactions logged yet.</p>'
+          : `<ul class="tx-list">${recent.map(t => renderTxRow(t, t._monthKey)).join("")}</ul>`}
       </div>
     </div>
 
@@ -655,7 +722,7 @@ function renderLogView() {
         </div>
         ${filtered.length === 0
           ? '<p class="text-muted">No transactions match this filter.</p>'
-          : `<ul class="tx-list">${filtered.map(t => renderTxRow(t)).join("")}</ul>`}
+          : `<ul class="tx-list">${filtered.map(t => renderTxRow(t, t._monthKey)).join("")}</ul>`}
       </div>
     </div>`;
 
@@ -665,7 +732,11 @@ function renderLogView() {
     const amount   = Number(document.getElementById("logAmountInput").value || 0);
     const note     = document.getElementById("logNoteInput").value.trim();
     if (!dateVal || !category || !amount) { alert("Please fill in date, category, and amount."); return; }
-    month.transactions.push({ id: uid(), dateISO: dateVal, category, amount, note });
+    // Route to the correct month bucket based on the transaction date
+    const [dy, dm] = dateVal.split("-");
+    const txMonthKey = dy + "-" + dm;
+    ensureMonthExists(txMonthKey);
+    months[txMonthKey].transactions.push({ id: uid(), dateISO: dateVal, category, amount, note });
     editingTxId = null; saveState(); renderLogView();
   });
 
@@ -676,10 +747,11 @@ function renderLogView() {
   container.addEventListener("change", e => e.stopPropagation());
 }
 
-function renderTxRow(t) {
+function renderTxRow(t, monthKey) {
+  const mk = monthKey || activeMonthKey;
   if (editingTxId === t.id) {
     return `
-      <li class="tx-row" data-id="${t.id}">
+      <li class="tx-row" data-id="${t.id}" data-month="${mk}">
         <div class="tx-edit-form">
           <div>
             <label class="form-label" style="font-size:11px;">Date</label>
@@ -705,7 +777,7 @@ function renderTxRow(t) {
       </li>`;
   }
   return `
-    <li class="tx-row" data-id="${t.id}">
+    <li class="tx-row" data-id="${t.id}" data-month="${mk}">
       <div class="tx-row-display">
         <div class="tx-row-left">
           <div class="tx-row-cat">${t.category}</div>
@@ -725,29 +797,45 @@ function handleTxClick(e) {
   if (!btn) return;
   const action = btn.dataset.txAction;
   const id     = btn.dataset.id;
-  const month  = months[activeMonthKey];
 
   if (action === "edit")        { editingTxId = id; renderLogView(); return; }
   if (action === "cancel-edit") { editingTxId = null; renderLogView(); return; }
 
   if (action === "save-edit") {
-    const row     = document.querySelector(`.tx-row[data-id="${id}"]`);
+    const row = document.querySelector(`.tx-row[data-id="${id}"]`);
     if (!row) return;
-    const tx      = month.transactions.find(t => t.id === id);
-    if (!tx)  return;
+    const srcMonthKey = row.dataset.month || activeMonthKey;
+    const srcMonth    = months[srcMonthKey];
+    const tx          = srcMonth?.transactions.find(t => t.id === id);
+    if (!tx) return;
     const dateVal = row.querySelector("[data-field='dateISO']").value;
     const amount  = Number(row.querySelector("[data-field='amount']").value || 0);
     const cat     = row.querySelector("[data-field='category']").value;
     const note    = row.querySelector("[data-field='note']").value.trim();
     if (!dateVal || !cat || !amount) { alert("Date, category and amount are required."); return; }
-    tx.dateISO = dateVal; tx.amount = amount; tx.category = cat; tx.note = note;
+    const [dy, dm]    = dateVal.split("-");
+    const newMonthKey = dy + "-" + dm;
+    if (newMonthKey !== srcMonthKey) {
+      // Move to the new month bucket
+      const idx = srcMonth.transactions.findIndex(t => t.id === id);
+      if (idx !== -1) srcMonth.transactions.splice(idx, 1);
+      ensureMonthExists(newMonthKey);
+      months[newMonthKey].transactions.push({ ...tx, dateISO: dateVal, amount, category: cat, note });
+    } else {
+      tx.dateISO = dateVal; tx.amount = amount; tx.category = cat; tx.note = note;
+    }
     editingTxId = null; saveState(); renderLogView(); return;
   }
 
   if (action === "delete") {
     if (!confirm("Delete this transaction?")) return;
-    const idx = month.transactions.findIndex(t => t.id === id);
-    if (idx !== -1) month.transactions.splice(idx, 1);
+    const row         = document.querySelector(`.tx-row[data-id="${id}"]`);
+    const srcMonthKey = row?.dataset.month || activeMonthKey;
+    const srcMonth    = months[srcMonthKey];
+    if (srcMonth) {
+      const idx = srcMonth.transactions.findIndex(t => t.id === id);
+      if (idx !== -1) srcMonth.transactions.splice(idx, 1);
+    }
     if (editingTxId === id) editingTxId = null;
     saveState(); renderLogView(); return;
   }
@@ -856,8 +944,14 @@ function renderBudgetView() {
 
 function renderMonthlyView() {
   const container = document.getElementById("monthlyView");
-  ensureMonthExists(activeMonthKey);
-  const month   = months[activeMonthKey];
+
+  // Ensure monthlyViewKey is set and doesn't exceed current month
+  const todayKey = formatMonthKey(new Date());
+  if (!monthlyViewKey) monthlyViewKey = activeMonthKey || todayKey;
+  if (monthlyViewKey > todayKey) monthlyViewKey = todayKey;
+
+  ensureMonthExists(monthlyViewKey);
+  const month   = months[monthlyViewKey];
   const actuals = computeActuals(month.transactions);
 
   const bills    = appSettings.recurringBills          || [];
@@ -865,6 +959,16 @@ function renderMonthlyView() {
   const invsts   = appSettings.recurringInvestments    || [];
   const disc     = appSettings.discretionaryCategories || [];
   const allItems = [...bills, ...subs, ...invsts, ...disc];
+
+  // ── Month navigator sub-label ──
+  const [vy, vm] = monthlyViewKey.split("-").map(Number);
+  const [ty, tm] = todayKey.split("-").map(Number);
+  const monthDiff = (vy - ty) * 12 + (vm - tm);
+  const navSub = monthDiff === 0  ? "Current Month"
+               : monthDiff === -1 ? "Last Month"
+               : monthDiff < -1   ? `${Math.abs(monthDiff)} months ago`
+               : "";
+  const canGoNext = monthlyViewKey < todayKey;
 
   // ── Overall totals ──
   const totalBudget = allItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
@@ -935,7 +1039,7 @@ function renderMonthlyView() {
 
   // ── Spending pace ──
   const now  = new Date();
-  const [y, m] = activeMonthKey.split("-").map(Number);
+  const [y, m] = monthlyViewKey.split("-").map(Number);
   const daysInMonth    = new Date(y, m, 0).getDate();
   const isCurrentMonth = now.getFullYear() === y && (now.getMonth() + 1) === m;
   const dayOfMonth     = isCurrentMonth ? now.getDate() : daysInMonth;
@@ -947,6 +1051,16 @@ function renderMonthlyView() {
   const avgTx     = month.transactions.length > 0 ? totalSpent / month.transactions.length : 0;
 
   container.innerHTML = `
+
+    <!-- ══ Month Navigator ══ -->
+    <div class="month-nav">
+      <button class="month-nav-btn" id="monthNavPrev">&#8249;</button>
+      <div class="month-nav-center">
+        <span class="month-nav-label">${formatMonthLabelFromKey(monthlyViewKey)}</span>
+        ${navSub ? `<span class="month-nav-sub">${navSub}</span>` : ""}
+      </div>
+      <button class="month-nav-btn" id="monthNavNext" ${canGoNext ? "" : "disabled"}>&#8250;</button>
+    </div>
 
     <!-- ══ Monthly Snapshot ══ -->
     <div class="card">
@@ -1161,6 +1275,25 @@ function renderMonthlyView() {
       </div>
     </div>` : ""}
   `;
+
+  // ── Month nav button handlers ──
+  document.getElementById("monthNavPrev").addEventListener("click", () => {
+    const [py, pm] = monthlyViewKey.split("-").map(Number);
+    const prev = new Date(py, pm - 2, 1);   // pm-1 is current month, pm-2 is one back
+    monthlyViewKey = formatMonthKey(prev);
+    ensureMonthExists(monthlyViewKey);
+    renderMonthlyView();
+  });
+  document.getElementById("monthNavNext")?.addEventListener("click", () => {
+    const [py, pm] = monthlyViewKey.split("-").map(Number);
+    const next = new Date(py, pm, 1);       // pm is current month index, so pm+0 = next
+    const candidate = formatMonthKey(next);
+    if (candidate <= formatMonthKey(new Date())) {
+      monthlyViewKey = candidate;
+      ensureMonthExists(monthlyViewKey);
+      renderMonthlyView();
+    }
+  });
 }
 
 // ─────────────────────────────────────────
