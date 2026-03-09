@@ -252,6 +252,25 @@
     .insight-row-value { font-weight: 700; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
     .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
 
+    /* ── Monthly view-mode toggle ── */
+    .view-mode-toggle {
+      display: flex; align-items: center;
+      background: rgba(10,19,38,0.7); border: 1px solid var(--color-border);
+      border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 16px;
+    }
+    .view-mode-btn {
+      flex: 1; text-align: center; padding: 7px 12px;
+      font-size: 13px; font-weight: 700; border-radius: 7px;
+      border: none; cursor: pointer; font-family: inherit;
+      background: none; color: var(--color-text-secondary);
+      transition: background .15s, color .15s;
+    }
+    .view-mode-btn.active {
+      background: rgba(106,166,255,0.18);
+      color: var(--color-primary);
+      border: 1px solid rgba(106,166,255,0.25);
+    }
+
     /* ── Month navigator ── */
     .month-nav {
       display: flex; align-items: center; justify-content: space-between;
@@ -393,7 +412,8 @@ let collapsedAdminSections = new Set(["bills","subs","invsts","disc"]);
 let editingTxId    = null;
 let txFilterCat    = "";
 let txSortOrder    = "newest";
-let monthlyViewKey = null;   // which month the Monthly tab is showing
+let monthlyViewKey  = null;   // which month the Monthly tab is showing
+let monthlyViewMode = "monthly"; // "monthly" | "ytd"
 
 const STORAGE_KEY = "financeTrackerState_v1";
 
@@ -944,15 +964,9 @@ function renderBudgetView() {
 
 function renderMonthlyView() {
   const container = document.getElementById("monthlyView");
-
-  // Ensure monthlyViewKey is set and doesn't exceed current month
-  const todayKey = formatMonthKey(new Date());
+  const todayKey  = formatMonthKey(new Date());
   if (!monthlyViewKey) monthlyViewKey = activeMonthKey || todayKey;
   if (monthlyViewKey > todayKey) monthlyViewKey = todayKey;
-
-  ensureMonthExists(monthlyViewKey);
-  const month   = months[monthlyViewKey];
-  const actuals = computeActuals(month.transactions);
 
   const bills    = appSettings.recurringBills          || [];
   const subs     = appSettings.recurringSubscriptions  || [];
@@ -960,28 +974,51 @@ function renderMonthlyView() {
   const disc     = appSettings.discretionaryCategories || [];
   const allItems = [...bills, ...subs, ...invsts, ...disc];
 
-  // ── Month navigator sub-label ──
   const [vy, vm] = monthlyViewKey.split("-").map(Number);
   const [ty, tm] = todayKey.split("-").map(Number);
+  const isYTD    = monthlyViewMode === "ytd";
+
+  // YTD: Jan through vm of vy (capped at current month if current year)
+  const ytdEndMonth   = (vy === ty) ? tm : (vy < ty ? 12 : vm);
+  const ytdMonthCount = ytdEndMonth;
+  const ytdYear       = vy;
+
+  // Collect transactions for the view
+  let viewTxs;
+  if (isYTD) {
+    viewTxs = [];
+    for (let mo = 1; mo <= ytdEndMonth; mo++) {
+      const key = ytdYear + "-" + String(mo).padStart(2, "0");
+      viewTxs.push(...((months[key]?.transactions) || []));
+    }
+  } else {
+    ensureMonthExists(monthlyViewKey);
+    viewTxs = months[monthlyViewKey].transactions || [];
+  }
+
+  const actuals = computeActuals(viewTxs);
+
+  // Nav labels
   const monthDiff = (vy - ty) * 12 + (vm - tm);
-  const navSub = monthDiff === 0  ? "Current Month"
-               : monthDiff === -1 ? "Last Month"
-               : monthDiff < -1   ? `${Math.abs(monthDiff)} months ago`
-               : "";
-  const canGoNext = monthlyViewKey < todayKey;
+  const navSub = isYTD
+    ? (vy === ty ? "Current Year" : vy < ty ? `${ty - vy} year${ty - vy > 1 ? "s" : ""} ago` : "")
+    : (monthDiff === 0 ? "Current Month" : monthDiff === -1 ? "Last Month" : monthDiff < -1 ? `${Math.abs(monthDiff)} months ago` : "");
+  const navLabel   = isYTD ? `${ytdYear} Year to Date` : formatMonthLabelFromKey(monthlyViewKey);
+  const canGoNext  = isYTD ? vy < ty : monthlyViewKey < todayKey;
 
-  // ── Overall totals ──
-  const totalBudget = allItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
-  const totalSpent  = Object.values(actuals).reduce((s, v) => s + v, 0);
-  const remaining   = totalBudget - totalSpent;
-  const overallPct  = totalBudget ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
-  const overallCls  = overallPct >= 100 ? "over" : overallPct >= 80 ? "warn" : "under";
+  // Budget totals (YTD = monthly × months elapsed)
+  const monthlyBudget = allItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+  const totalBudget   = isYTD ? monthlyBudget * ytdMonthCount : monthlyBudget;
+  const totalSpent    = Object.values(actuals).reduce((s, v) => s + v, 0);
+  const remaining     = totalBudget - totalSpent;
+  const overallPct    = totalBudget ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  const overallCls    = overallPct >= 100 ? "over" : overallPct >= 80 ? "warn" : "under";
 
-  // ── Budget health counts ──
+  // Budget health counts
   let countOnTrack = 0, countAtRisk = 0, countOver = 0, countNotStarted = 0;
   allItems.forEach(item => {
     const actual = actuals[item.name] || 0;
-    const budget = Number(item.budgetAmount || 0);
+    const budget = Number(item.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
     if (!budget) return;
     if (!actual)       { countNotStarted++; return; }
     const pct = actual / budget;
@@ -990,89 +1027,87 @@ function renderMonthlyView() {
     else                 countOnTrack++;
   });
 
-  // ── Over-budget items ──
   const overItems = allItems
-    .filter(i => {
-      const a = actuals[i.name] || 0, b = Number(i.budgetAmount || 0);
-      return b && a > b;
-    })
-    .map(i => ({
-      name:   i.name,
-      actual: actuals[i.name] || 0,
-      budget: Number(i.budgetAmount),
-      over:   (actuals[i.name] || 0) - Number(i.budgetAmount)
-    }));
+    .filter(i => { const a = actuals[i.name]||0, b = Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); return b && a > b; })
+    .map(i => ({ name: i.name, actual: actuals[i.name]||0,
+      budget: Number(i.budgetAmount)*(isYTD?ytdMonthCount:1),
+      over:   (actuals[i.name]||0) - Number(i.budgetAmount)*(isYTD?ytdMonthCount:1) }));
 
-  // ── At-risk items (80–99%) ──
   const atRiskItems = allItems
-    .filter(i => {
-      const a = actuals[i.name] || 0, b = Number(i.budgetAmount || 0);
-      if (!b) return false;
-      const p = a / b;
-      return p >= 0.8 && p < 1;
-    })
-    .map(i => ({
-      name:   i.name,
-      actual: actuals[i.name] || 0,
-      budget: Number(i.budgetAmount),
-      pct:    ((actuals[i.name] || 0) / Number(i.budgetAmount)) * 100
-    }));
+    .filter(i => { const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); if(!b)return false; const p=a/b; return p>=0.8&&p<1; })
+    .map(i => ({ name: i.name, actual: actuals[i.name]||0,
+      budget: Number(i.budgetAmount)*(isYTD?ytdMonthCount:1),
+      pct:    ((actuals[i.name]||0)/(Number(i.budgetAmount)*(isYTD?ytdMonthCount:1)))*100 }));
 
-  // ── Bucket rollup ──
   const buckets = [
-    { label: "🏠 Must Pay",       items: bills  },
-    { label: "📱 Subs & Other",   items: subs   },
-    { label: "💰 Savings",        items: invsts },
-    { label: "🛍️ Discretionary", items: disc   }
+    { label:"🏠 Must Pay",       items:bills  },
+    { label:"📱 Subs & Other",   items:subs   },
+    { label:"💰 Savings",        items:invsts },
+    { label:"🛍️ Discretionary", items:disc   }
   ];
 
-  // ── Top 5 spending categories ──
   const ranked = allItems
-    .filter(i => (actuals[i.name] || 0) > 0)
-    .map(i => ({ name: i.name, actual: actuals[i.name] || 0, budget: Number(i.budgetAmount || 0) }))
-    .sort((a, b) => b.actual - a.actual)
-    .slice(0, 5);
+    .filter(i => (actuals[i.name]||0) > 0)
+    .map(i => ({ name:i.name, actual:actuals[i.name]||0, budget:Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1) }))
+    .sort((a,b) => b.actual - a.actual).slice(0,5);
 
-  // ── Unbudgeted spending ──
-  const unbudgeted = allItems.filter(i => !Number(i.budgetAmount) && (actuals[i.name] || 0) > 0)
-    .map(i => ({ name: i.name, actual: actuals[i.name] }));
+  const unbudgeted = allItems
+    .filter(i => !Number(i.budgetAmount) && (actuals[i.name]||0) > 0)
+    .map(i => ({ name:i.name, actual:actuals[i.name] }));
 
-  // ── Spending pace ──
-  const now  = new Date();
-  const [y, m] = monthlyViewKey.split("-").map(Number);
-  const daysInMonth    = new Date(y, m, 0).getDate();
-  const isCurrentMonth = now.getFullYear() === y && (now.getMonth() + 1) === m;
+  // Spending pace (monthly + current month only)
+  const now = new Date();
+  const daysInMonth    = new Date(vy, vm, 0).getDate();
+  const isCurrentMonth = !isYTD && now.getFullYear()===vy && (now.getMonth()+1)===vm;
   const dayOfMonth     = isCurrentMonth ? now.getDate() : daysInMonth;
   const pacePct        = (dayOfMonth / daysInMonth) * 100;
-  const projectedSpend = dayOfMonth > 0 ? totalSpent * (daysInMonth / dayOfMonth) : 0;
+  const projectedSpend = dayOfMonth > 0 ? totalSpent*(daysInMonth/dayOfMonth) : 0;
 
-  // ── Biggest & average transaction ──
-  const biggestTx = [...month.transactions].sort((a, b) => Number(b.amount) - Number(a.amount))[0];
-  const avgTx     = month.transactions.length > 0 ? totalSpent / month.transactions.length : 0;
+  const biggestTx = [...viewTxs].sort((a,b) => Number(b.amount)-Number(a.amount))[0];
+  const avgTx     = viewTxs.length > 0 ? totalSpent/viewTxs.length : 0;
+
+  // YTD month-by-month rows
+  const ytdMonthRows = isYTD ? (() => {
+    const rows = [];
+    for (let mo = 1; mo <= ytdEndMonth; mo++) {
+      const key   = ytdYear + "-" + String(mo).padStart(2,"0");
+      const txs   = months[key]?.transactions || [];
+      const spent = txs.reduce((s,t) => s+Number(t.amount||0), 0);
+      rows.push({ label: new Date(ytdYear, mo-1, 1).toLocaleString(undefined,{month:"short"}), spent });
+    }
+    return rows;
+  })() : [];
 
   container.innerHTML = `
 
-    <!-- ══ Month Navigator ══ -->
+    <!-- View Mode Toggle -->
+    <div class="view-mode-toggle">
+      <button class="view-mode-btn ${!isYTD?"active":""}" id="modeMonthly">📅 Monthly</button>
+      <button class="view-mode-btn ${isYTD ?"active":""}" id="modeYTD">📈 Year to Date</button>
+    </div>
+
+    <!-- Navigator -->
     <div class="month-nav">
       <button class="month-nav-btn" id="monthNavPrev">&#8249;</button>
       <div class="month-nav-center">
-        <span class="month-nav-label">${formatMonthLabelFromKey(monthlyViewKey)}</span>
+        <span class="month-nav-label">${navLabel}</span>
         ${navSub ? `<span class="month-nav-sub">${navSub}</span>` : ""}
       </div>
-      <button class="month-nav-btn" id="monthNavNext" ${canGoNext ? "" : "disabled"}>&#8250;</button>
+      <button class="month-nav-btn" id="monthNavNext" ${canGoNext?"":"disabled"}>&#8250;</button>
     </div>
 
-    <!-- ══ Monthly Snapshot ══ -->
+    <!-- Snapshot -->
     <div class="card">
-      <div class="card-header"><h2 class="card-title">📋 Monthly Snapshot</h2></div>
+      <div class="card-header"><h2 class="card-title">${isYTD?"📋 YTD Snapshot":"📋 Monthly Snapshot"}</h2></div>
       <div class="card-body">
         <div class="stat-grid-2" style="margin-bottom:14px;">
           <div class="stat-tile">
-            <div class="stat-tile-label">Total Budgeted</div>
+            <div class="stat-tile-label">${isYTD?"YTD Budget":"Total Budgeted"}</div>
             <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(totalBudget)}</div>
+            ${isYTD?`<div class="stat-tile-sub">${fmt(monthlyBudget)}/mo × ${ytdMonthCount} mo</div>`:""}
           </div>
           <div class="stat-tile">
-            <div class="stat-tile-label">Total Spent</div>
+            <div class="stat-tile-label">${isYTD?"YTD Spent":"Total Spent"}</div>
             <div class="stat-tile-value" style="color:${progressColor(overallCls)};">${fmt(totalSpent)}</div>
           </div>
         </div>
@@ -1086,7 +1121,7 @@ function renderMonthlyView() {
           </div>
         </div>
         <div style="text-align:center;padding:8px 0 0;">
-          ${remaining >= 0
+          ${remaining>=0
             ? `<span style="font-size:13px;color:var(--color-text-secondary);">Remaining: </span>
                <span style="font-size:15px;font-weight:700;color:var(--color-success);">${fmt(remaining)}</span>`
             : `<span style="font-size:13px;color:var(--color-text-secondary);">Over budget by: </span>
@@ -1095,13 +1130,39 @@ function renderMonthlyView() {
       </div>
     </div>
 
-    <!-- ══ Quick Stats ══ -->
+    <!-- YTD: Month-by-Month -->
+    ${isYTD ? `
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">🗓️ Month-by-Month</h2></div>
+      <div class="card-body">
+        ${ytdMonthRows.map(r => {
+          const pct = monthlyBudget ? Math.min((r.spent/monthlyBudget)*100,100) : 0;
+          const cls = progressClass(r.spent, monthlyBudget);
+          return `
+            <div style="margin-bottom:11px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                <span style="color:var(--color-text-primary);font-weight:600;">${r.label}</span>
+                <span style="font-weight:700;color:${progressColor(cls)};">${fmt(r.spent)}</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
+              </div>
+            </div>`;
+        }).join("")}
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding-top:8px;border-top:1px solid var(--color-border);margin-top:4px;">
+          <span style="color:var(--color-text-secondary);">Monthly average</span>
+          <span style="font-weight:700;color:var(--color-primary);">${fmt(ytdMonthCount ? totalSpent/ytdMonthCount : 0)}</span>
+        </div>
+      </div>
+    </div>` : ""}
+
+    <!-- Quick Stats -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🔢 Quick Stats</h2></div>
       <div class="card-body">
         <div class="insight-row">
           <span class="insight-row-label">Total transactions</span>
-          <span class="insight-row-value" style="color:var(--color-primary);">${month.transactions.length}</span>
+          <span class="insight-row-value" style="color:var(--color-primary);">${viewTxs.length}</span>
         </div>
         <div class="insight-row">
           <span class="insight-row-label">Avg transaction size</span>
@@ -1114,23 +1175,23 @@ function renderMonthlyView() {
         </div>
         <div class="insight-row" style="padding-top:2px;">
           <span style="font-size:11px;color:var(--color-text-secondary);">
-            ${biggestTx.category}${biggestTx.note ? " • " + biggestTx.note : ""} · ${biggestTx.dateISO}
+            ${biggestTx.category}${biggestTx.note?" • "+biggestTx.note:""} · ${biggestTx.dateISO}
           </span>
         </div>` : ""}
       </div>
     </div>
 
-    <!-- ══ Budget Health ══ -->
+    <!-- Budget Health -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🩺 Budget Health</h2></div>
       <div class="card-body">
-        <div class="stat-grid-4" style="margin-bottom:${overItems.length || atRiskItems.length ? "16px" : "0"};">
+        <div class="stat-grid-4" style="margin-bottom:${overItems.length||atRiskItems.length?"16px":"0"};">
           ${[
-            { label:"On Track",    count: countOnTrack,    color:"var(--color-success)",       icon:"✅" },
-            { label:"At Risk",     count: countAtRisk,     color:"var(--color-warning)",       icon:"⚠️" },
-            { label:"Over Budget", count: countOver,       color:"var(--color-danger)",        icon:"🚨" },
-            { label:"Not Started", count: countNotStarted, color:"var(--color-text-secondary)",icon:"⏳" }
-          ].map(h => `
+            {label:"On Track",    count:countOnTrack,    color:"var(--color-success)",        icon:"✅"},
+            {label:"At Risk",     count:countAtRisk,     color:"var(--color-warning)",        icon:"⚠️"},
+            {label:"Over Budget", count:countOver,       color:"var(--color-danger)",         icon:"🚨"},
+            {label:"Not Started", count:countNotStarted, color:"var(--color-text-secondary)", icon:"⏳"}
+          ].map(h=>`
             <div class="health-tile">
               <span class="health-tile-icon">${h.icon}</span>
               <div>
@@ -1139,72 +1200,70 @@ function renderMonthlyView() {
               </div>
             </div>`).join("")}
         </div>
-
-        ${overItems.length > 0 ? `
+        ${overItems.length>0?`
           <div style="margin-bottom:12px;">
             <div class="section-label" style="color:var(--color-danger);">Over Budget</div>
-            ${overItems.map(i => `
+            ${overItems.map(i=>`
               <div class="insight-row">
                 <span class="insight-row-label">${i.name}</span>
                 <span class="insight-row-value" style="color:var(--color-danger);">+${fmt(i.over)} over</span>
               </div>`).join("")}
-          </div>` : ""}
-
-        ${atRiskItems.length > 0 ? `
+          </div>`:""}
+        ${atRiskItems.length>0?`
           <div>
             <div class="section-label" style="color:var(--color-warning);">At Risk (80–99%)</div>
-            ${atRiskItems.map(i => `
+            ${atRiskItems.map(i=>`
               <div class="insight-row">
                 <span class="insight-row-label">${i.name}</span>
                 <span class="insight-row-value" style="color:var(--color-warning);">${i.pct.toFixed(0)}% used</span>
               </div>`).join("")}
-          </div>` : ""}
-
-        ${overItems.length === 0 && atRiskItems.length === 0 && month.transactions.length > 0
-          ? `<p style="font-size:13px;color:var(--color-success);margin:0;">✅ All categories are on track this month!</p>` : ""}
-        ${month.transactions.length === 0
-          ? `<p class="text-muted" style="margin:0;">No transactions logged yet.</p>` : ""}
+          </div>`:""}
+        ${overItems.length===0&&atRiskItems.length===0&&viewTxs.length>0
+          ?`<p style="font-size:13px;color:var(--color-success);margin:0;">✅ All categories on track!</p>`:""}
+        ${viewTxs.length===0
+          ?`<p class="text-muted" style="margin:0;">No transactions logged yet.</p>`:""}
       </div>
     </div>
 
-    <!-- ══ Spending by Bucket ══ -->
+    <!-- Spending by Bucket -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🪣 Spending by Bucket</h2></div>
       <div class="card-body">
         ${buckets.map(bucket => {
-          const bTotal = bucket.items.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
-          const aTotal = bucket.items.reduce((s, i) => s + (actuals[i.name] || 0), 0);
-          const pct    = bTotal ? Math.min((aTotal / bTotal) * 100, 100) : 0;
-          const cls    = progressClass(aTotal, bTotal);
-          const color  = progressColor(cls);
-          const bPct   = totalBudget ? ((bTotal / totalBudget) * 100).toFixed(0) : 0;
+          const bMonthly = bucket.items.reduce((s,i)=>s+Number(i.budgetAmount||0),0);
+          const bTotal   = bMonthly*(isYTD?ytdMonthCount:1);
+          const aTotal   = bucket.items.reduce((s,i)=>s+(actuals[i.name]||0),0);
+          const pct      = bTotal ? Math.min((aTotal/bTotal)*100,100) : 0;
+          const cls      = progressClass(aTotal,bTotal);
+          const color    = progressColor(cls);
+          const bPct     = totalBudget ? ((bTotal/totalBudget)*100).toFixed(0) : 0;
           return `
             <div style="margin-bottom:16px;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
                 <span style="font-size:13px;font-weight:600;color:var(--color-text-primary);">${bucket.label}</span>
                 <span style="font-size:12px;white-space:nowrap;">
                   <span style="font-weight:700;color:${color};">${fmt(aTotal)}</span>
-                  <span style="color:var(--color-text-secondary);"> / ${bTotal ? fmt(bTotal) : "—"}</span>
+                  <span style="color:var(--color-text-secondary);"> / ${bTotal?fmt(bTotal):"—"}</span>
                 </span>
               </div>
               <div class="progress-bar-track">
                 <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
               </div>
-              ${bTotal ? `<div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${bPct}% of total budget</div>` : ""}
+              ${bTotal?`<div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${bPct}% of total budget</div>`:""}
             </div>`;
         }).join("")}
       </div>
     </div>
 
-    <!-- ══ Top 5 Spending ══ -->
+    <!-- Top 5 Spending -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🏆 Top Spending</h2></div>
       <div class="card-body">
-        ${ranked.length === 0
+        ${ranked.length===0
           ? '<p class="text-muted">No spending logged yet.</p>'
-          : ranked.map((item, idx) => {
-              const pct   = item.budget ? Math.min((item.actual / item.budget) * 100, 100) : 0;
-              const cls   = progressClass(item.actual, item.budget);
+          : ranked.map((item,idx) => {
+              const pct   = item.budget ? Math.min((item.actual/item.budget)*100,100) : 0;
+              const cls   = progressClass(item.actual,item.budget);
               const color = progressColor(cls);
               const medal = ["🥇","🥈","🥉","4️⃣","5️⃣"][idx];
               return `
@@ -1215,14 +1274,14 @@ function renderMonthlyView() {
                     <span style="font-size:13px;font-weight:700;color:${color};white-space:nowrap;">${fmt(item.actual)}</span>
                   </div>
                   ${item.budget
-                    ? `<div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>`
-                    : `<div style="font-size:10px;color:var(--color-text-secondary);">No budget set</div>`}
+                    ?`<div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>`
+                    :`<div style="font-size:10px;color:var(--color-text-secondary);">No budget set</div>`}
                 </div>`;
             }).join("")}
       </div>
     </div>
 
-    <!-- ══ Spending Pace (current month only) ══ -->
+    <!-- Spending Pace (monthly, current month only) -->
     ${isCurrentMonth ? `
     <div class="card">
       <div class="card-header"><h2 class="card-title">📅 Spending Pace</h2></div>
@@ -1237,37 +1296,37 @@ function renderMonthlyView() {
         <div class="progress-bar-track" style="margin-bottom:14px;">
           <div class="progress-bar-fill unset" style="width:${pacePct}%;"></div>
         </div>
-        <div class="stat-grid-2" style="margin-bottom:${totalBudget > 0 ? "12px" : "0"};">
+        <div class="stat-grid-2" style="margin-bottom:${monthlyBudget>0?"12px":"0"};">
           <div class="stat-tile">
             <div class="stat-tile-label">Spent So Far</div>
             <div class="stat-tile-value" style="color:var(--color-primary);font-size:18px;">${fmt(totalSpent)}</div>
           </div>
           <div class="stat-tile">
             <div class="stat-tile-label">Projected End-of-Month</div>
-            <div class="stat-tile-value" style="color:${projectedSpend > totalBudget ? "var(--color-danger)" : "var(--color-warning)"};font-size:18px;">${fmt(projectedSpend)}</div>
+            <div class="stat-tile-value" style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-warning)"};font-size:18px;">${fmt(projectedSpend)}</div>
           </div>
         </div>
-        ${totalBudget > 0 ? `
+        ${monthlyBudget>0?`
           <p style="font-size:12px;color:var(--color-text-secondary);margin:0;text-align:center;line-height:1.6;">
             At this pace you'll finish
-            <strong style="color:${projectedSpend > totalBudget ? "var(--color-danger)" : "var(--color-success)"};">
-              ${projectedSpend > totalBudget
-                ? fmt(projectedSpend - totalBudget) + " over budget"
-                : fmt(totalBudget - projectedSpend) + " under budget"}
+            <strong style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-success)"};">
+              ${projectedSpend>monthlyBudget
+                ? fmt(projectedSpend-monthlyBudget)+" over budget"
+                : fmt(monthlyBudget-projectedSpend)+" under budget"}
             </strong>
-          </p>` : ""}
+          </p>`:""}
       </div>
     </div>` : ""}
 
-    <!-- ══ Unbudgeted Spending ══ -->
-    ${unbudgeted.length > 0 ? `
+    <!-- Unbudgeted Spending -->
+    ${unbudgeted.length>0 ? `
     <div class="card">
       <div class="card-header"><h2 class="card-title">🔍 Unbudgeted Spending</h2></div>
       <div class="card-body">
         <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">
           Spending logged in categories with no budget set. Consider adding budgets in Admin.
         </p>
-        ${unbudgeted.map(i => `
+        ${unbudgeted.map(i=>`
           <div class="insight-row">
             <span class="insight-row-label">${i.name}</span>
             <span class="insight-row-value" style="color:var(--color-warning);">${fmt(i.actual)}</span>
@@ -1276,22 +1335,26 @@ function renderMonthlyView() {
     </div>` : ""}
   `;
 
-  // ── Month nav button handlers ──
+  // Toggle handlers
+  document.getElementById("modeMonthly").addEventListener("click", () => { monthlyViewMode = "monthly"; renderMonthlyView(); });
+  document.getElementById("modeYTD").addEventListener("click",     () => { monthlyViewMode = "ytd";     renderMonthlyView(); });
+
+  // Nav handlers
   document.getElementById("monthNavPrev").addEventListener("click", () => {
-    const [py, pm] = monthlyViewKey.split("-").map(Number);
-    const prev = new Date(py, pm - 2, 1);   // pm-1 is current month, pm-2 is one back
-    monthlyViewKey = formatMonthKey(prev);
+    if (isYTD) {
+      monthlyViewKey = (vy-1) + "-" + String(vm).padStart(2,"0");
+    } else {
+      monthlyViewKey = formatMonthKey(new Date(vy, vm-2, 1));
+    }
     ensureMonthExists(monthlyViewKey);
     renderMonthlyView();
   });
   document.getElementById("monthNavNext")?.addEventListener("click", () => {
-    const [py, pm] = monthlyViewKey.split("-").map(Number);
-    const next = new Date(py, pm, 1);       // pm is current month index, so pm+0 = next
-    const candidate = formatMonthKey(next);
-    if (candidate <= formatMonthKey(new Date())) {
-      monthlyViewKey = candidate;
-      ensureMonthExists(monthlyViewKey);
-      renderMonthlyView();
+    if (isYTD) {
+      if (vy+1 <= ty) { monthlyViewKey = (vy+1)+"-"+String(vm).padStart(2,"0"); ensureMonthExists(monthlyViewKey); renderMonthlyView(); }
+    } else {
+      const candidate = formatMonthKey(new Date(vy, vm, 1));
+      if (candidate <= todayKey) { monthlyViewKey = candidate; ensureMonthExists(monthlyViewKey); renderMonthlyView(); }
     }
   });
 }
