@@ -919,22 +919,19 @@ function renderBucketItem(item, rawActual, budget, yearTxs) {
       </div>`;
   }
 
-  const name           = item.name;
-  const isSplit        = !!(item.splitEnabled && Number(item.splitFullAmount) > 0);
-  const isAnnual       = !!item.annualEnabled;
-  const annualTotal    = isAnnual ? (Number(item.annualTotal) || Number(item.budgetAmount || 0) * 12) : 0;
-  const annualPaid     = isAnnual && isAnnualPaid(item, yearTxs);
-  let effectiveActual;
-  if (isAnnual) {
-  // Treat the monthly set-aside as already “spent” for the current view
-  // budget is the already-multiplied ceiling passed into renderBucketItem
-  const monthsInView = budget && item.budgetAmount
-    ? budget / Number(item.budgetAmount || 0)
-    : 1;
-  effectiveActual = Number(item.budgetAmount || 0) * monthsInView;
-  } else {
+  const name        = item.name;
+const isSplit     = !!(item.splitEnabled && Number(item.splitFullAmount) > 0);
+const isAnnual    = !!item.annualEnabled;
+const annualTotal = isAnnual ? (Number(item.annualTotal) || Number(item.budgetAmount || 0) * 12) : 0;
+const annualPaid  = isAnnual && isAnnualPaid(item, yearTxs);
+
+let effectiveActual;
+if (isAnnual) {
+  effectiveActual = Number(budget || 0);
+} else {
   effectiveActual = getEffectiveActual(item, rawActual);
-  }
+}
+
 
 
   // Progress math: use effective actual vs budget; if annual paid → full green
