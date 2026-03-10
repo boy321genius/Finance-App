@@ -1019,9 +1019,18 @@ if (isSplit) {
     badges.push(`<span class="bill-badge badge-annual-pending">📅 Annual · saving ${fmt(Number(item.budgetAmount || 0))}/mo</span>`);
   }
   if (isSplit && !annualPaid) {
-    const partnerShare = Math.max(0, Number(item.splitFullAmount) - Number(item.budgetAmount || 0));
-    badges.push(`<span class="bill-badge badge-partner">👥 Partner covers ${fmt(partnerShare)}</span>`);
-  }
+  const fullAmount  = Number(item.splitFullAmount || 0);
+  const yourShare   = Number(item.budgetAmount || 0);
+  const basePartner = Math.max(0, fullAmount - yourShare);
+
+  // Derive the view multiplier: 1 in monthly, number of months in YTD
+  const mult = yourShare ? (budget / yourShare) : 1;
+  const partnerShare = basePartner * mult;
+
+  badges.push(
+    `<span class="bill-badge badge-partner">Partner covers ${fmt(partnerShare)}</span>`
+  );
+}
 
   return `
     <div class="bucket-item">
