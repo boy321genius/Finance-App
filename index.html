@@ -1305,7 +1305,7 @@ async function openExistingBackup() {
 
 async function exportSnapshot() {
   const dateStr       = new Date().toISOString().slice(0, 10);
-  const suggestedName = `finance-backup-${dateStr}.json`;
+  const suggestedName = `finance-backup.json`;
   const data          = JSON.stringify(buildStateObject(), null, 2);
 
   if (IS_IOS && HAS_SHARE) {
@@ -2476,7 +2476,7 @@ function renderAdminView() {
         <button class="btn" id="adminSnapshotBtn" type="button" style="width:100%;margin-bottom:10px;">📤 Export Backup</button>
         <p style="font-size:11px;color:var(--color-text-secondary);margin:-4px 0 12px;line-height:1.5;text-align:center;">
           Opens the share sheet — save to Files or iCloud.<br>
-          Each export creates a new dated file (e.g. <em>finance-backup-2026-03-09.json</em>).<br>
+
           You can safely delete old backups from the Files app.
         </p>
         <button class="btn btn-ghost" id="adminImportBtn" type="button" style="width:100%;font-size:13px;">📥 Restore from Backup File</button>
