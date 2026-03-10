@@ -1859,11 +1859,23 @@ function renderBudgetView() {
 
 
   const totalBillsBudget = bills.reduce((s, b)  => s + Number(b.budgetAmount || 0), 0) * mult;
-  const totalBillsActual = bills.reduce((s, b)  => s + (actuals[b.name] || 0), 0);
+  const totalBillsActual = bills.reduce((s, b)  => {
+  const isAnnual = !!b.annualEnabled;
+  const annualActual = Number(b.budgetAmount || 0) * mult;
+  return s + (isAnnual ? annualActual : (actuals[b.name] || 0));
+}, 0);
   const totalSubsBudget  = subs.reduce((s, b)   => s + Number(b.budgetAmount || 0), 0) * mult;
-  const totalSubsActual  = subs.reduce((s, b)   => s + (actuals[b.name] || 0), 0);
+  const totalSubsActual  = subs.reduce((s, b)   => {
+  const isAnnual = !!b.annualEnabled;
+  const annualActual = Number(b.budgetAmount || 0) * mult;
+  return s + (isAnnual ? annualActual : (actuals[b.name] || 0));
+}, 0);
   const totalInvstBudget = invsts.reduce((s, b) => s + Number(b.budgetAmount || 0), 0) * mult;
-  const totalInvstActual = invsts.reduce((s, b) => s + (actuals[b.name] || 0), 0);
+  const totalInvstActual = invsts.reduce((s, b) => {
+  const isAnnual = !!b.annualEnabled;
+  const annualActual = Number(b.budgetAmount || 0) * mult;
+  return s + (isAnnual ? annualActual : (actuals[b.name] || 0));
+}, 0);
   const totalDiscBudget  = disc.reduce((s, d)   => s + Number(d.budgetAmount || 0), 0) * mult;
   const totalDiscActual  = disc.reduce((s, d)   => s + (actuals[d.name] || 0), 0);
 
