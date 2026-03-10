@@ -1891,7 +1891,7 @@ function renderBudgetView() {
             <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
             <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
           </div>
-          ${bills.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
+          ${bills.map(b => renderBucketItem(b, rawActuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
@@ -1904,7 +1904,7 @@ function renderBudgetView() {
             <span class="bucket-section-title">Subscriptions and Other</span>
             <span class="bucket-section-totals"><span>${fmt(totalSubsActual)}</span> / ${fmt(totalSubsBudget)}</span>
           </div>
-          ${subs.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
+          ${subs.map(b => renderBucketItem(b, rawActuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
@@ -1917,7 +1917,7 @@ function renderBudgetView() {
             <span class="bucket-section-title">${isYTD ? "YTD Contributions" : "Contributions This Month"}</span>
             <span class="bucket-section-totals"><span>${fmt(totalInvstActual)}</span> / ${fmt(totalInvstBudget)}</span>
           </div>
-          ${invsts.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
+          ${invsts.map(b => renderBucketItem(b, rawActuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
