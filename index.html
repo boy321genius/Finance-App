@@ -1941,7 +1941,7 @@ function renderBudgetView() {
         </div>
         ${disc.length === 0
           ? '<p class="empty-bucket">No discretionary categories configured — add them in Admin.</p>'
-          : disc.map(d => renderBucketItem(d.name, actuals[d.name] || 0, Number(d.budgetAmount || 0) * mult)).join("")}
+          : disc.map(d => renderBucketItem(d.name, rawActuals[d.name] || 0, Number(d.budgetAmount || 0) * mult)).join("")}
       </div>
     </div>`;
 
