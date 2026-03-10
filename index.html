@@ -985,21 +985,30 @@ if (isAnnual) {
 
   // Amount display
   let amountRight;
-  if (isSplit) {
-    const partnerShare = Math.max(0, Number(item.splitFullAmount) - Number(item.budgetAmount || 0));
-    amountRight = `
-      <div class="bucket-item-amounts" style="text-align:right;">
-        <span class="bucket-item-actual" style="color:${color};">${fmt(effectiveActual)}</span>
-        <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
-        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:1px;">+ ${fmt(partnerShare)} partner</div>
-      </div>`;
-  } else {
-    amountRight = `
-      <div class="bucket-item-amounts">
-        <span class="bucket-item-actual" style="color:${color};">${fmt(effectiveActual)}</span>
-        <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
-      </div>`;
-  }
+if (isSplit) {
+  const fullAmount = Number(item.splitFullAmount || 0);
+  const yourShare  = Number(item.budgetAmount || 0);
+  const basePartner = Math.max(0, fullAmount - yourShare);
+
+  // Derive the per-view multiplier from budget vs yourShare (1 for monthly, YTD months for YTD)
+  const mult = yourShare ? (budget / yourShare) : 1;
+  const partnerShare = basePartner * mult;
+
+  amountRight = `
+    <div class="bucket-item-amounts" style="text-align:right">
+      <span class="bucket-item-actual" style="color:${color}">${fmt(effectiveActual)}</span>
+      <span class="bucket-item-budget">${budget ? fmt(budget) : ""}</span>
+      <div style="font-size:10px;color:var(--color-text-secondary);margin-top:1px">
+        ${fmt(partnerShare)} partner
+      </div>
+    </div>`;
+} else {
+  amountRight = `
+    <div class="bucket-item-amounts">
+      <span class="bucket-item-actual" style="color:${color}">${fmt(effectiveActual)}</span>
+      <span class="bucket-item-budget">${budget ? fmt(budget) : ""}</span>
+    </div>`;
+}
 
   // Badges
   const badges = [];
