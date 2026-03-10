@@ -1328,8 +1328,8 @@ async function exportSnapshot() {
     if (activeView === "admin") renderAdminView();
   }
 
-  // ── 1. Try File System Access API (opens native save dialog on supported browsers) ──
-  if (typeof window.showSaveFilePicker === "function") {
+  // ── 1. Try File System Access API (opens native save dialog on desktop Chrome/Edge/Safari) ──
+  if (typeof window.showSaveFilePicker === "function" && !IS_IOS) {
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName,
@@ -1342,32 +1342,18 @@ async function exportSnapshot() {
       return;
     } catch(e) {
       if (e.name === "AbortError") return;
-      // Fall through to next method
+      // Fall through to anchor download
     }
   }
 
-  // ── 2. iOS share sheet (opens Files app / iCloud on iOS) ──
-  if (IS_IOS && HAS_SHARE) {
-    try {
-      const blob = new File([data], suggestedName, { type: "application/json" });
-      if (navigator.canShare({ files: [blob] })) {
-        await navigator.share({ files: [blob], title: "Finance Tracker Backup" });
-        await onExportSuccess();
-        return;
-      }
-    } catch(e) {
-      if (e.name === "AbortError") return;
-      console.error(e);
-      return;
-    }
-  }
-
-  // ── 3. Fallback: anchor download ──
-  const a = Object.assign(document.createElement("a"), {
-    href: URL.createObjectURL(new Blob([data], { type: "application/json" })),
-    download: suggestedName
-  });
-  a.click(); URL.revokeObjectURL(a.href);
+  // ── 2. Anchor download — on iOS Safari this saves directly to Files app (Downloads folder) ──
+  //       On desktop it triggers a normal browser download. No share sheet involved.
+  const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: suggestedName });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
   await onExportSuccess();
 }
 
@@ -2513,8 +2499,8 @@ function renderAdminView() {
 
         <button class="btn" id="adminSnapshotBtn" type="button" style="width:100%;margin-bottom:10px;">📤 Export Backup</button>
         <p style="font-size:11px;color:var(--color-text-secondary);margin:-4px 0 12px;line-height:1.5;text-align:center;">
-          Opens the Files app — save anywhere you like.<br>
-          You can safely delete old backups from the Files app.
+          Saves directly to the Files app (Downloads folder).<br>
+          You can safely delete old backups from there.
         </p>
         <button class="btn btn-ghost" id="adminImportBtn" type="button" style="width:100%;font-size:13px;">📥 Restore from Backup File</button>
 
