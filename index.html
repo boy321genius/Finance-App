@@ -815,14 +815,30 @@ function daysSince(date) {
 
 function progressClass(actual, budget) {
   if (!budget) return "unset";
-  const p = actual / budget;
-  return p >= 1 ? "over" : p >= 0.8 ? "warn" : "under";
+
+  const diff = actual - budget;       // dollars over/under
+  const p    = actual / budget;       // percent of budget
+
+  // 1) Red: clearly over budget (at least $2 above)
+  if (diff >= 2) return "over";
+
+  // 2) Blue: within a couple dollars of budget, up or down
+  if (Math.abs(diff) <= 2) return "unset";
+
+  // 3) Yellow: between ~80% and just below the blue band
+  if (p >= 0.8) return "warn";
+
+  // 4) Green: safely under ~80% of budget
+  return "under";
 }
 function progressColor(cls) {
-  return cls === "over"  ? "var(--color-danger)"
-       : cls === "warn"  ? "var(--color-warning)"
-       : cls === "under" ? "var(--color-success)"
-       :                   "var(--color-primary)";
+  return cls === "over"
+    ? "var(--color-danger)"   // red
+    : cls === "warn"
+    ? "var(--color-warning)"  // yellow
+    : cls === "under"
+    ? "var(--color-success)"  // green
+    : "var(--color-primary)"; // blue (for "unset" / on-target band)
 }
 
 function ensureMonthExists(key) {
@@ -1941,7 +1957,7 @@ function renderBudgetView() {
         </div>
         ${disc.length === 0
           ? '<p class="empty-bucket">No discretionary categories configured — add them in Admin.</p>'
-          : disc.map(d => renderBucketItem(d.name, rawActuals[d.name] || 0, Number(d.budgetAmount || 0) * mult)).join("")}
+          : disc.map(d => renderBucketItem(d.name, actuals[d.name] || 0, Number(d.budgetAmount || 0) * mult)).join("")}
       </div>
     </div>`;
 
