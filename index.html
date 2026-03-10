@@ -65,7 +65,7 @@
     .chip-warn:hover   { background: rgba(251,191,36,0.18); }
     .chip-saving  { background: rgba(106,166,255,0.07); border-color: rgba(106,166,255,0.18); color: var(--color-text-secondary); }
     .chip-idbonly   { background: rgba(74,222,128,0.06);  border-color: rgba(74,222,128,0.18);  color: var(--color-success); }
-    /* iOS-specific chip states */
+    .chip-opfs      { background: rgba(74,222,128,0.10);  border-color: rgba(74,222,128,0.30);  color: var(--color-success); font-weight: 800; }
     .chip-ios-browser{ background: rgba(251,191,36,0.1);   border-color: rgba(251,191,36,0.3);   color: var(--color-warning); cursor: pointer; }
     .chip-ios-browser:hover { background: rgba(251,191,36,0.18); }
     .chip-ios-pwa    { background: rgba(74,222,128,0.07);  border-color: rgba(74,222,128,0.22);  color: var(--color-success); }
@@ -156,7 +156,7 @@
     .ios-bar-text { flex: 1; color: var(--color-text-secondary); line-height: 1.4; }
     .ios-persistent-bar.backed-up .ios-bar-text { color: var(--color-success); }
 
-    /* ── Compact inline banner (iOS top bar) ── */
+    /* ── Compact inline banner ── */
     .banner-compact {
       display: flex; align-items: center; gap: 8px;
       padding: 8px 14px; font-size: 12px; font-weight: 600;
@@ -340,11 +340,25 @@
       border: 1px solid var(--color-border);
     }
     .smt-pwa     { background: rgba(74,222,128,0.06);  border-color: rgba(74,222,128,0.2); }
+    .smt-opfs    { background: rgba(74,222,128,0.10);  border-color: rgba(74,222,128,0.35); }
     .smt-browser { background: rgba(251,191,36,0.06);  border-color: rgba(251,191,36,0.25); }
     .smt-icon    { font-size: 22px; flex-shrink: 0; line-height: 1; padding-top: 2px; }
     .smt-body    { flex: 1; min-width: 0; }
     .smt-title   { font-size: 13px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
     .smt-sub     { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; }
+
+    /* ── Storage layer indicator ── */
+    .storage-layer-row {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .storage-layer-badge {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
+      border: 1px solid;
+    }
+    .slb-active  { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); color: var(--color-success); }
+    .slb-inactive{ background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.15); color: rgba(159,176,208,0.4); }
+    .slb-dot     { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
     /* ── Admin: Install steps nudge ── */
     .install-steps {
@@ -364,6 +378,7 @@
     .backup-status-value { font-size: 12px; font-weight: 700; }
     .backup-status-value.backed     { color: var(--color-success); }
     .backup-status-value.not-backed { color: var(--color-warning); }
+
     /* ── Shared form ── */
     .form-group { margin-bottom: 12px; }
     .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; }
@@ -443,17 +458,9 @@
     .month-nav-btn:hover  { background: rgba(106,166,255,0.22); }
     .month-nav-btn:active { background: rgba(106,166,255,0.32); }
     .month-nav-btn:disabled { opacity: .3; cursor: default; pointer-events: none; }
-    .month-nav-center {
-      flex: 1; text-align: center; padding: 0 10px;
-    }
-    .month-nav-label {
-      font-size: 15px; font-weight: 700; color: var(--color-text-primary); display: block;
-    }
-    .month-nav-sub {
-      font-size: 10px; font-weight: 500; color: var(--color-text-secondary);
-      margin-top: 2px; display: block; letter-spacing: .3px;
-    }
-
+    .month-nav-center { flex: 1; text-align: center; padding: 0 10px; }
+    .month-nav-label { font-size: 15px; font-weight: 700; color: var(--color-text-primary); display: block; }
+    .month-nav-sub { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); margin-top: 2px; display: block; letter-spacing: .3px; }
 
     /* ── Future / Long-term Goals ── */
     .goal-card {
@@ -461,121 +468,62 @@
       border: 1px solid var(--color-border); border-radius: 16px;
       margin-bottom: 12px; overflow: hidden;
     }
-    .goal-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 16px; cursor: pointer; user-select: none;
-    }
+    .goal-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer; user-select: none; }
     .goal-header:hover { background: rgba(255,255,255,0.02); }
     .goal-icon  { font-size: 20px; flex-shrink: 0; line-height: 1; }
     .goal-title-group { flex: 1; min-width: 0; }
     .goal-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); }
     .goal-subtitle { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
     .goal-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .goal-pct-badge {
-      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
-      background: rgba(106,166,255,0.12); border: 1px solid rgba(106,166,255,0.2);
-      color: var(--color-primary); white-space: nowrap;
-    }
+    .goal-pct-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(106,166,255,0.12); border: 1px solid rgba(106,166,255,0.2); color: var(--color-primary); white-space: nowrap; }
     .goal-chevron { font-size: 10px; color: var(--color-text-secondary); }
     .goal-body { padding: 0 16px 16px; border-top: 1px solid var(--color-border); }
-
     .goal-progress-wrap { padding: 12px 0 14px; }
-    .goal-progress-labels {
-      display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;
-    }
+    .goal-progress-labels { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
     .goal-progress-current { font-weight: 700; }
     .goal-progress-target  { color: var(--color-text-secondary); }
-
-    .goal-stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
-    }
-    .goal-stat-tile {
-      background: rgba(10,19,38,0.7); border: 1px solid var(--color-border);
-      border-radius: 10px; padding: 10px 12px;
-    }
+    .goal-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .goal-stat-tile { background: rgba(10,19,38,0.7); border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 12px; }
     .goal-stat-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--color-text-secondary); margin-bottom: 4px; }
     .goal-stat-value { font-size: 17px; font-weight: 800; line-height: 1; color: var(--color-primary); }
     .goal-stat-sub   { font-size: 10px; color: var(--color-text-secondary); margin-top: 3px; }
-
     .goal-note { font-size: 12px; color: var(--color-text-secondary); font-style: italic; padding: 8px 0 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 12px; line-height: 1.5; }
-
-    .goal-edit-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
-    }
+    .goal-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .goal-edit-grid .full { grid-column: 1 / -1; }
     .goal-field-label { font-size: 11px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; display: block; }
-    .goal-input {
-      width: 100%; background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(148,163,184,0.35); border-radius: 8px;
-      padding: 7px 10px; font-size: 13px; color: var(--color-text-primary);
-      font-family: inherit; -webkit-appearance: none; appearance: none;
-    }
+    .goal-input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(148,163,184,0.35); border-radius: 8px; padding: 7px 10px; font-size: 13px; color: var(--color-text-primary); font-family: inherit; -webkit-appearance: none; appearance: none; }
     .goal-input:focus { outline: none; border-color: var(--color-primary); }
     .goal-input::placeholder { color: rgba(159,176,208,0.4); }
     .goal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-
-    .goal-add-card {
-      border: 2px dashed rgba(106,166,255,0.2); border-radius: 16px;
-      padding: 16px; text-align: center; cursor: pointer;
-      transition: border-color .15s, background .15s; margin-bottom: 12px;
-    }
+    .goal-add-card { border: 2px dashed rgba(106,166,255,0.2); border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; margin-bottom: 12px; }
     .goal-add-card:hover { border-color: rgba(106,166,255,0.4); background: rgba(106,166,255,0.04); }
     .goal-add-label { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
-
-    .goal-new-form {
-      background: rgba(10,19,38,0.7); border: 1px solid var(--color-border);
-      border-radius: 14px; padding: 14px; margin-bottom: 12px;
-    }
+    .goal-new-form { background: rgba(10,19,38,0.7); border: 1px solid var(--color-border); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
     .goal-new-form-title { font-size: 13px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 12px; }
     .goal-icon-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .goal-icon-opt {
-      font-size: 20px; padding: 6px 8px; border-radius: 8px; cursor: pointer;
-      border: 2px solid transparent; transition: border-color .1s, background .1s;
-      background: rgba(255,255,255,0.04);
-    }
+    .goal-icon-opt { font-size: 20px; padding: 6px 8px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color .1s, background .1s; background: rgba(255,255,255,0.04); }
     .goal-icon-opt.selected { border-color: var(--color-primary); background: rgba(106,166,255,0.12); }
 
-
     /* ── Emergency Fund card ── */
-    .ef-month-bar-row {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-    }
+    .ef-month-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .ef-month-label { font-size: 11px; font-weight: 700; color: var(--color-text-secondary); width: 52px; flex-shrink: 0; }
     .ef-month-amount { font-size: 11px; color: var(--color-text-secondary); width: 64px; text-align: right; flex-shrink: 0; }
-    .ef-milestone-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
-      background: rgba(10,19,38,0.6); border: 1px solid var(--color-border);
-    }
+    .ef-milestone-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; background: rgba(10,19,38,0.6); border: 1px solid var(--color-border); }
     .ef-milestone-icon { font-size: 16px; flex-shrink: 0; }
     .ef-milestone-label { font: 700 12px/1.3 inherit; color: var(--color-text-primary); flex: 1; }
     .ef-milestone-sub   { font-size: 10px; color: var(--color-text-secondary); }
     .ef-milestone-value { font: 700 13px/1 inherit; white-space: nowrap; }
     .ef-month-selector  { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
-    .ef-month-opt {
-      padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;
-      border: 1px solid var(--color-border); cursor: pointer;
-      background: rgba(255,255,255,0.04); color: var(--color-text-secondary);
-      transition: background .12s, color .12s, border-color .12s;
-    }
+    .ef-month-opt { padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; border: 1px solid var(--color-border); cursor: pointer; background: rgba(255,255,255,0.04); color: var(--color-text-secondary); transition: background .12s, color .12s, border-color .12s; }
     .ef-month-opt.active-baseline { background: rgba(100,200,120,0.15); border-color: var(--color-success); color: var(--color-success); }
     .ef-month-opt.active-goal     { background: rgba(106,166,255,0.15); border-color: var(--color-primary); color: var(--color-primary); }
 
     /* ── Home Purchase Planner card ── */
     .hp-scenario-tabs { display: flex; gap: 5px; margin-bottom: 14px; }
-    .hp-scenario-tab  {
-      flex: 1; text-align: center; padding: 7px 4px; border-radius: 9px; font-size: 12px; font-weight: 700;
-      border: 1px solid var(--color-border); cursor: pointer;
-      background: rgba(255,255,255,0.03); color: var(--color-text-secondary);
-      transition: background .12s, color .12s;
-    }
+    .hp-scenario-tab  { flex: 1; text-align: center; padding: 7px 4px; border-radius: 9px; font-size: 12px; font-weight: 700; border: 1px solid var(--color-border); cursor: pointer; background: rgba(255,255,255,0.03); color: var(--color-text-secondary); transition: background .12s, color .12s; }
     .hp-scenario-tab.active { background: rgba(106,166,255,0.14); border-color: rgba(106,166,255,0.3); color: var(--color-primary); }
     .hp-section { margin-bottom: 16px; }
-    .hp-section-title {
-      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px;
-      color: var(--color-text-secondary); margin-bottom: 8px; padding-bottom: 5px;
-      border-bottom: 1px solid var(--color-border);
-    }
+    .hp-section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--color-text-secondary); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--color-border); }
     .hp-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; }
     .hp-row-label { font-size: 12px; color: var(--color-text-secondary); }
     .hp-row-value { font-size: 13px; font-weight: 700; color: var(--color-text-primary); }
@@ -586,66 +534,33 @@
     .hp-total-label { font-size: 13px; font-weight: 700; color: var(--color-text-primary); }
     .hp-total-value { font-size: 15px; font-weight: 800; color: var(--color-primary); }
     .hp-down-tabs   { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
-    .hp-down-tab    {
-      flex: 1; text-align: center; padding: 5px 4px; border-radius: 7px; font-size: 11px; font-weight: 700;
-      border: 1px solid var(--color-border); cursor: pointer; min-width: 44px;
-      background: rgba(255,255,255,0.03); color: var(--color-text-secondary);
-      transition: background .12s, color .12s;
-    }
+    .hp-down-tab    { flex: 1; text-align: center; padding: 5px 4px; border-radius: 7px; font-size: 11px; font-weight: 700; border: 1px solid var(--color-border); cursor: pointer; min-width: 44px; background: rgba(255,255,255,0.03); color: var(--color-text-secondary); transition: background .12s, color .12s; }
     .hp-down-tab.active { background: rgba(106,166,255,0.14); border-color: rgba(106,166,255,0.3); color: var(--color-primary); }
-    .hp-afford-row {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      padding: 8px 10px; border-radius: 8px; margin-bottom: 5px; gap: 8px;
-      background: rgba(10,19,38,0.5); border: 1px solid var(--color-border);
-    }
+    .hp-afford-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 10px; border-radius: 8px; margin-bottom: 5px; gap: 8px; background: rgba(10,19,38,0.5); border: 1px solid var(--color-border); }
     .hp-afford-label { font-size: 11px; color: var(--color-text-secondary); line-height: 1.4; flex: 1; }
     .hp-afford-value { font-size: 12px; font-weight: 700; white-space: nowrap; }
-    /* ── Home tab: collapsible inputs ── */
-    .hp-inputs-group-label {
-      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px;
-      color: var(--color-text-secondary); margin-bottom: 8px;
-      padding-bottom: 5px; border-bottom: 1px solid var(--color-border);
-    }
+    .hp-inputs-group-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--color-text-secondary); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--color-border); }
     .hp-inputs-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .hp-inputs-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .hp-input-label   { display: block; font-size: 11px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; }
     .hp-inputs-note   { font-size: 10px; color: var(--color-text-secondary); margin-top: 5px; line-height: 1.4; }
     .hp-scenario-row  { display: flex; gap: 6px; align-items: flex-end; margin-bottom: 8px; }
-    .hp-scenario-label {
-      width: 20px; flex-shrink: 0; padding-bottom: 8px;
-      font-size: 11px; font-weight: 800; color: var(--color-text-secondary);
-    }
+    .hp-scenario-label { width: 20px; flex-shrink: 0; padding-bottom: 8px; font-size: 11px; font-weight: 800; color: var(--color-text-secondary); }
     .hp-inputs-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .hp-inputs-grid .full { grid-column: 1/-1; }
     .hp-input-group  { display: flex; flex-direction: column; gap: 4px; }
 
-
     /* ── Future tab inner nav ── */
-    .future-tab-nav {
-      display: flex; gap: 0; margin-bottom: 16px;
-      background: rgba(10,19,38,0.7); border: 1px solid var(--color-border);
-      border-radius: 12px; padding: 4px; overflow-x: auto;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    }
+    .future-tab-nav { display: flex; gap: 0; margin-bottom: 16px; background: rgba(10,19,38,0.7); border: 1px solid var(--color-border); border-radius: 12px; padding: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .future-tab-nav::-webkit-scrollbar { display: none; }
-    .future-tab-btn {
-      flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-      gap: 3px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
-      border: none; background: none; font-family: inherit; transition: background .15s;
-      min-width: 64px;
-    }
-    .future-tab-btn.active {
-      background: rgba(106,166,255,0.16); border: 1px solid rgba(106,166,255,0.25);
-    }
+    .future-tab-btn { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 14px; border-radius: 8px; cursor: pointer; border: none; background: none; font-family: inherit; transition: background .15s; min-width: 64px; }
+    .future-tab-btn.active { background: rgba(106,166,255,0.16); border: 1px solid rgba(106,166,255,0.25); }
     .future-tab-icon  { font-size: 18px; line-height: 1; }
     .future-tab-label { font-size: 10px; font-weight: 700; color: var(--color-text-secondary); white-space: nowrap; letter-spacing: .2px; }
     .future-tab-btn.active .future-tab-label { color: var(--color-primary); }
 
     /* ── Overview summary rows ── */
-    .overview-goal-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px; cursor: pointer; transition: background .12s;
-    }
+    .overview-goal-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; transition: background .12s; }
     .overview-goal-row:hover { background: rgba(255,255,255,0.02); }
     .overview-goal-row + .overview-goal-row { border-top: 1px solid var(--color-border); }
     .overview-row-icon  { font-size: 22px; flex-shrink: 0; }
@@ -658,12 +573,7 @@
     .overview-mini-bar  { margin-top: 6px; }
 
     /* ── Bottom nav ── */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--color-bg-secondary); border-top: 1px solid var(--color-border);
-      display: flex; justify-content: space-around;
-      padding: 6px 0 calc(6px + env(safe-area-inset-bottom,0)); z-index: 20;
-    }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border); display: flex; justify-content: space-around; padding: 6px 0 calc(6px + env(safe-area-inset-bottom,0)); z-index: 20; }
     .nav-btn { flex: 1; background: none; border: none; color: #64748b; padding: 4px 4px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: 500; gap: 4px; }
     .nav-btn.active { color: var(--color-primary); }
     .nav-icon { width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(148,163,184,0.2); font-size: 14px; }
@@ -786,19 +696,24 @@ const STORAGE_KEY = "financeTrackerState_v1";
 // ── Platform detection ──
 const IS_IOS        = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const IS_STANDALONE = window.matchMedia("(display-mode: standalone)").matches || !!navigator.standalone;
-const HAS_SHARE       = typeof navigator.share === "function" && typeof navigator.canShare === "function";
+const HAS_SHARE     = typeof navigator.share === "function" && typeof navigator.canShare === "function";
+const HAS_OPFS      = typeof navigator.storage?.getDirectory === "function";
 
 // ── Save-system state ──
-let fileStatus         = "loading"; // loading | idb-only | ios-browser | ios-pwa | ios-backed
-let lastExportedAt     = null;   // Date of last successful iOS export
-let _idb               = null;   // cached IDBDatabase
+let fileStatus     = "loading";
+let lastExportedAt = null;
+let opfsAvailable  = false;   // confirmed OPFS worked on first write
+let _idb           = null;
 
 // ── IndexedDB constants ──
-const IDB_NAME       = "financeTrackerDB";
-const IDB_VERSION    = 1;
-const IDB_STATE      = "state";
-const IDB_PREFS      = "prefs";
-const IDB_STATE_KEY  = "main";
+const IDB_NAME      = "financeTrackerDB";
+const IDB_VERSION   = 1;
+const IDB_STATE     = "state";
+const IDB_PREFS     = "prefs";
+const IDB_STATE_KEY = "main";
+
+// ── Backup nudge threshold (days) ──
+const BACKUP_NUDGE_DAYS = 5;
 
 // ─────────────────────────────────────────
 //  HELPERS
@@ -825,6 +740,11 @@ function timeAgo(date) {
   if (hrs < 24)  return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
   const days = Math.floor(hrs / 24);
   return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+function daysSince(date) {
+  if (!date) return Infinity;
+  return (Date.now() - date.getTime()) / 86400000;
 }
 
 function progressClass(actual, budget) {
@@ -898,7 +818,42 @@ function renderBucketItem(name, actual, budget) {
 }
 
 // ─────────────────────────────────────────
-//  INDEXEDDB LAYER
+//  ORIGIN PRIVATE FILE SYSTEM (OPFS)
+//  — most durable local storage on iOS 16.4+
+// ─────────────────────────────────────────
+
+const OPFS_FILENAME = "finance-tracker-state.json";
+
+async function opfsWrite(data) {
+  if (!HAS_OPFS) return false;
+  try {
+    const root    = await navigator.storage.getDirectory();
+    const fh      = await root.getFileHandle(OPFS_FILENAME, { create: true });
+    const writable = await fh.createWritable();
+    await writable.write(data);
+    await writable.close();
+    return true;
+  } catch(e) {
+    console.warn("OPFS write failed:", e);
+    return false;
+  }
+}
+
+async function opfsRead() {
+  if (!HAS_OPFS) return null;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const fh   = await root.getFileHandle(OPFS_FILENAME);
+    const file = await fh.getFile();
+    return await file.text();
+  } catch(e) {
+    // File doesn't exist yet — not an error
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────
+//  INDEXEDDB LAYER  (session cache / fallback)
 // ─────────────────────────────────────────
 
 function openIDB() {
@@ -929,11 +884,73 @@ async function idbSet(store, key, val) {
     r.onsuccess = () => res(); r.onerror = e => rej(e.target.error);
   });
 }
-async function idbDel(store, key) {
-  const db = await openIDB();
-  return new Promise((res, rej) => {
-    const r = db.transaction(store, "readwrite").objectStore(store).delete(key);
-    r.onsuccess = () => res(); r.onerror = e => rej(e.target.error);
+
+// ─────────────────────────────────────────
+//  STORAGE PERSISTENCE REQUEST
+//  — formally asks iOS not to evict data
+// ─────────────────────────────────────────
+
+async function requestPersistence() {
+  if (!navigator.storage?.persist) return false;
+  try {
+    const granted = await navigator.storage.persist();
+    console.log("Storage persistence granted:", granted);
+    return granted;
+  } catch(e) {
+    console.warn("Storage persist request failed:", e);
+    return false;
+  }
+}
+
+async function checkPersistence() {
+  if (!navigator.storage?.persisted) return false;
+  try { return await navigator.storage.persisted(); } catch(e) { return false; }
+}
+
+// ─────────────────────────────────────────
+//  BACKUP NUDGE
+// ─────────────────────────────────────────
+
+async function maybeShowBackupNudge() {
+  // Don't nudge if backed up recently
+  if (daysSince(lastExportedAt) < BACKUP_NUDGE_DAYS) return;
+  // Don't nudge if we already showed it this session
+  if (document.getElementById("backup-nudge-banner")) return;
+  // Don't nudge if there's no data worth backing up
+  const totalTxCount = Object.values(months).reduce((s, m) => s + (m.transactions?.length || 0), 0);
+  if (totalTxCount === 0) return;
+  // Check if user dismissed it today
+  try {
+    const dismissed = await idbGet(IDB_PREFS, "nudgeDismissedDate");
+    if (dismissed) {
+      const dismissedDate = new Date(dismissed).toDateString();
+      if (dismissedDate === new Date().toDateString()) return;
+    }
+  } catch(e) {}
+
+  const dayCount = lastExportedAt ? Math.floor(daysSince(lastExportedAt)) : null;
+  const msg = dayCount !== null
+    ? `It's been ${dayCount} days since your last backup.`
+    : "You haven't exported a backup yet this session.";
+
+  const el = document.createElement("div");
+  el.id = "backup-nudge-banner";
+  el.className = "banner-compact";
+  el.innerHTML = `
+    <span class="banner-compact-dot"></span>
+    <span class="banner-compact-text">${msg} Back up now?</span>
+    <button class="banner-compact-btn" id="nudgeBackupBtn">Back Up</button>
+    <button class="banner-compact-dismiss" id="nudgeDismissBtn" title="Dismiss">×</button>`;
+  const container = document.getElementById("bannerContainer");
+  if (container) container.appendChild(el);
+
+  document.getElementById("nudgeBackupBtn")?.addEventListener("click", () => {
+    dismissBanner("backup-nudge-banner");
+    handleBackupButtonClick();
+  });
+  document.getElementById("nudgeDismissBtn")?.addEventListener("click", async () => {
+    dismissBanner("backup-nudge-banner");
+    try { await idbSet(IDB_PREFS, "nudgeDismissedDate", new Date().toISOString()); } catch(e) {}
   });
 }
 
@@ -949,42 +966,44 @@ function setFileStatus(s) {
 function updateStatusChip() {
   const chip = document.getElementById("saveStatusChip");
   if (!chip) return;
-  const MAP = {
-    "loading":       { icon: "…",  label: "Loading…",        cls: "chip-saving",     clickable: false },
-    "idb-only":      { icon: "✓",  label: "Saved Locally",   cls: "chip-idbonly",    clickable: false },
-    "ios-browser":   { icon: "💾", label: "Back Up Now",     cls: "chip-ios-browser",clickable: true  },
-    "ios-pwa":       { icon: "✓",  label: "Auto-Protected",  cls: "chip-ios-pwa",    clickable: false },
-    "ios-backed":    { icon: "✓",  label: "Backup Saved ✓",  cls: "chip-ios-backed", clickable: false },
-  };
-  const cfg = MAP[fileStatus] || MAP["idb-only"];
-  chip.className = "save-status-chip " + cfg.cls;
-  chip.innerHTML = `<span class="chip-icon">${cfg.icon}</span><span id="chipLabel">${cfg.label}</span>`;
-  chip.title = cfg.clickable
-    ? "Your data is in Safari's memory — tap to export a backup to Files or iCloud."
-    : (fileStatus === "ios-pwa"
-        ? "Stored in the installed app — protected from the 7-day Safari timer. Back up periodically to be safe."
-        : (lastExportedAt ? "Last backed up: " + lastExportedAt.toLocaleTimeString() : ""));
-  chip.onclick = cfg.clickable ? handleChipClick : null;
-  chip.style.cursor = cfg.clickable ? "pointer" : "default";
+
+  // Determine the best label based on storage layers available
+  let icon, label, cls, clickable = false, title = "";
+
+  if (fileStatus === "loading") {
+    icon = "…"; label = "Loading…"; cls = "chip-saving";
+  } else if (fileStatus === "ios-backed") {
+    icon = "✓"; label = "Backup Saved ✓"; cls = "chip-ios-backed";
+    title = lastExportedAt ? "Last backed up: " + lastExportedAt.toLocaleTimeString() : "";
+  } else if (opfsAvailable && IS_STANDALONE) {
+    icon = "✓"; label = "Protected (OPFS)"; cls = "chip-opfs";
+    title = "Stored in the Origin Private File System — the most durable local storage available on iOS.";
+  } else if (opfsAvailable) {
+    icon = "✓"; label = "OPFS + Export"; cls = "chip-opfs";
+    clickable = true;
+    title = "OPFS active — most durable local storage. Tap to also export a dated backup.";
+  } else if (IS_STANDALONE) {
+    icon = "✓"; label = "Auto-Protected"; cls = "chip-ios-pwa";
+    title = "Stored in the installed app — protected from the 7-day Safari timer.";
+  } else {
+    icon = "💾"; label = "Export Backup"; cls = "chip-ios-browser";
+    clickable = true;
+    title = "Your data is in Safari's memory — tap to export a dated backup to Files or iCloud.";
+  }
+
+  chip.className = "save-status-chip " + cls;
+  chip.innerHTML = `<span class="chip-icon">${icon}</span><span id="chipLabel">${label}</span>`;
+  chip.title     = title;
+  chip.onclick   = clickable ? handleChipClick : null;
+  chip.style.cursor = clickable ? "pointer" : "default";
 }
 
 function handleChipClick() {
-  if (fileStatus === "ios-browser") handleBackupButtonClick();
+  handleBackupButtonClick();
 }
 
 async function handleBackupButtonClick() {
-  if (!lastExportedAt) {
-    // First backup — go straight to export with dated filename
-    await exportSnapshot("new");
-    return;
-  }
-  // Subsequent backup — offer choice
-  const choice = confirm(
-    "Back up your data:\n\n" +
-    "• OK  = New dated file (creates a separate backup)\n" +
-    "• Cancel = Replace last backup (same filename, navigate to it in Files)"
-  );
-  await exportSnapshot(choice ? "new" : "replace");
+  await exportSnapshot();
 }
 
 // ─────────────────────────────────────────
@@ -1017,25 +1036,6 @@ function dismissBanner(id) {
   if (el) el.remove();
 }
 
-async function showInstallBanner() {
-  if (IS_STANDALONE) return;
-  try { if (await idbGet(IDB_PREFS, "installDismissed")) return; } catch(e) {}
-  if (document.getElementById("install-banner")) return;
-  const el = document.createElement("div");
-  el.id = "install-banner";
-  el.className = "banner-compact";
-  el.style.borderBottom = "1px solid rgba(106,166,255,0.18)";
-  el.style.background = "rgba(106,166,255,0.06)";
-  el.innerHTML = `
-    <span class="banner-compact-dot" style="background:var(--color-primary);"></span>
-    <span class="banner-compact-text" style="color:var(--color-text-secondary);">Add to Home Screen for safer storage</span>
-    <button class="banner-compact-btn" style="background:rgba(106,166,255,0.14);border-color:rgba(106,166,255,0.35);color:var(--color-primary);"
-      onclick="dismissBanner('install-banner'); idbSet(IDB_PREFS,'installDismissed',true).catch(()=>{});">Got it</button>
-    <button class="banner-compact-dismiss" onclick="dismissBanner('install-banner'); idbSet(IDB_PREFS,'installDismissed',true).catch(()=>{});" title="Dismiss">×</button>`;
-  const container = document.getElementById("bannerContainer");
-  if (container) container.appendChild(el);
-}
-
 function showPersistentIOSBar() {
   if (IS_STANDALONE) return;
   if (document.getElementById("ios-persistent-bar")) return;
@@ -1062,8 +1062,6 @@ function updatePersistentIOSBar(backedUp) {
       "⚠️ Your data lives in Safari's memory — it can vanish if you clear history or run low on storage. Back up regularly via Admin.";
   }
 }
-
-
 
 function showFirstRunCard() {
   if (document.getElementById("frOverlay")) return;
@@ -1111,36 +1109,24 @@ function dismissFirstRun() {
 }
 
 // ─────────────────────────────────────────
-//  PERSISTENCE
+//  PERSISTENCE  —  layered: OPFS → IDB → localStorage
 // ─────────────────────────────────────────
 
 function buildStateObject() { return { appSettings, months, plannerState, activeFileName }; }
 
-// Scans every month bucket and moves transactions to the correct bucket
-// based on their dateISO. Fixes any transactions stored in the wrong month.
 function migrateMisplacedTransactions() {
   let changed = false;
   Object.keys(months).forEach(monthKey => {
-    if (!Array.isArray(months[monthKey].transactions)) {
-      months[monthKey].transactions = [];
-      return;
-    }
+    if (!Array.isArray(months[monthKey].transactions)) { months[monthKey].transactions = []; return; }
     const misplaced = [];
     months[monthKey].transactions = months[monthKey].transactions.filter(tx => {
       if (!tx.dateISO) return true;
       const [y, m] = tx.dateISO.split("-");
       const correctKey = y + "-" + m;
-      if (correctKey !== monthKey) {
-        misplaced.push({ tx, correctKey });
-        changed = true;
-        return false; // pull out of wrong bucket
-      }
+      if (correctKey !== monthKey) { misplaced.push({ tx, correctKey }); changed = true; return false; }
       return true;
     });
-    misplaced.forEach(({ tx, correctKey }) => {
-      ensureMonthExists(correctKey);
-      months[correctKey].transactions.push(tx);
-    });
+    misplaced.forEach(({ tx, correctKey }) => { ensureMonthExists(correctKey); months[correctKey].transactions.push(tx); });
   });
   if (changed) saveState();
 }
@@ -1157,7 +1143,6 @@ function applyStateObject(state) {
   if (!appSettings.recurringInvestments?.length)    appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
   if (!appSettings.discretionaryCategories?.length) appSettings.discretionaryCategories = DEFAULT_DISC.map(i => ({ ...i }));
 
-  // Seed default long-term goals if none exist
   if (!plannerState.goals || plannerState.goals.length === 0) {
     plannerState.goals = [
       { id: uid(), type: "emergency", name: "Emergency Fund",  icon: "🛡️", currentAmount: 0, baselineMonths: 3, goalMonths: 6 },
@@ -1174,7 +1159,7 @@ function applyStateObject(state) {
         scenarios: [{homePrice:225000,downPct:20},{homePrice:245000,downPct:20},{homePrice:265000,downPct:20}] }
     ];
   }
-  // Migrate legacy goal types
+
   (plannerState.goals || []).forEach(g => {
     if (!g.type) g.type = "generic";
     if (g.name === "Emergency Fund" && g.type === "generic") {
@@ -1185,7 +1170,6 @@ function applyStateObject(state) {
       g.interestRate = g.interestRate || 6.25; g.loanTermYears = g.loanTermYears || 30; g.hoaFee = g.hoaFee || 300;
       g.scenarios = g.scenarios || [{homePrice:225000,downPct:20},{homePrice:245000,downPct:20},{homePrice:265000,downPct:20}];
     }
-    // Ensure all home cost fields exist with defaults
     if (g.type === "home") {
       if (g.propTaxRate      == null) g.propTaxRate      = 1.7;
       if (g.hoiRate          == null) g.hoiRate          = 0.5;
@@ -1205,8 +1189,8 @@ function applyStateObject(state) {
       if (g.reserveMonths    == null) g.reserveMonths    = 3;
     }
   });
-  migrateMisplacedTransactions(); // fix any transactions in the wrong month bucket
 
+  migrateMisplacedTransactions();
   if (!activeMonthKey) activeMonthKey = formatMonthKey(new Date());
   if (!monthlyViewKey) monthlyViewKey = activeMonthKey;
   ensureMonthExists(activeMonthKey);
@@ -1215,41 +1199,71 @@ function applyStateObject(state) {
 
 async function loadState() {
   try {
-    // 1. Try IndexedDB first (primary storage)
-    let raw = null;
-    try { raw = await idbGet(IDB_STATE, IDB_STATE_KEY); } catch(e) { console.warn("IDB read failed", e); }
+    // ── 1. Request storage persistence from the browser ──
+    //    This formally asks iOS not to evict our data.
+    //    More likely to be granted when installed as a PWA.
+    const persistGranted = await requestPersistence();
+    console.log("Persistence granted:", persistGranted);
 
-    // 2. Fallback to localStorage + migrate to IDB
+    // ── 2. Try OPFS first (most durable on iOS 16.4+) ──
+    let raw = null;
+    let source = "none";
+
+    if (HAS_OPFS) {
+      try {
+        raw = await opfsRead();
+        if (raw) { source = "opfs"; opfsAvailable = true; }
+      } catch(e) { console.warn("OPFS read failed:", e); }
+    }
+
+    // ── 3. Fall back to IndexedDB ──
+    if (!raw) {
+      try {
+        raw = await idbGet(IDB_STATE, IDB_STATE_KEY);
+        if (raw) source = "idb";
+      } catch(e) { console.warn("IDB read failed:", e); }
+    }
+
+    // ── 4. Fall back to localStorage + migrate up to OPFS/IDB ──
     if (!raw) {
       const ls = localStorage.getItem(STORAGE_KEY);
       if (ls) {
-        raw = ls;
+        raw = ls; source = "localStorage";
+        // Migrate up to better storage
         try { await idbSet(IDB_STATE, IDB_STATE_KEY, raw); } catch(e) {}
+        if (HAS_OPFS) {
+          const wrote = await opfsWrite(raw);
+          if (wrote) { opfsAvailable = true; }
+        }
       }
     }
 
     const isFirstRun = !raw;
     applyStateObject(raw ? JSON.parse(raw) : {});
 
-    // ── Platform-specific storage setup ──
+    console.log(`State loaded from: ${source}`);
+
+    // ── 5. Restore lastExportedAt ──
+    try {
+      const ts = await idbGet(IDB_PREFS, "lastExportedAt");
+      if (ts) lastExportedAt = new Date(ts);
+    } catch(e) {}
+
+    // ── 6. Set status chip ──
     if (IS_STANDALONE) {
-      // PWA installed on home screen: IDB is durable
-      setFileStatus("ios-pwa");
+      setFileStatus(opfsAvailable ? "ios-pwa" : "ios-pwa");
     } else {
-      // iOS browser tab: IDB works but can be evicted — signal amber state
       setFileStatus("ios-browser");
-      showPersistentIOSBar();  // Always show — non-dismissable
+      showPersistentIOSBar();
     }
 
-    // Restore lastExportedAt for iOS
-    if (IS_IOS) {
-      try {
-        const ts = await idbGet(IDB_PREFS, "lastExportedAt");
-        if (ts) lastExportedAt = new Date(ts);
-      } catch(e) {}
+    // ── 7. Show first-run or backup nudge ──
+    if (isFirstRun) {
+      setTimeout(() => showFirstRunCard(), 300);
+    } else {
+      setTimeout(() => maybeShowBackupNudge(), 2000);
     }
 
-    if (isFirstRun) setTimeout(() => showFirstRunCard(), 300);
   } catch(e) {
     console.error("loadState error:", e);
     applyStateObject({});
@@ -1257,38 +1271,43 @@ async function loadState() {
   }
 }
 
-function saveState() {
+async function saveState() {
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     const data = JSON.stringify(buildStateObject());
-    // Primary storage: IndexedDB
-    try { await idbSet(IDB_STATE, IDB_STATE_KEY, data); } catch(e) { console.warn("IDB save failed", e); }
-    // Fallback: localStorage
-    try { localStorage.setItem(STORAGE_KEY, data); } catch(e) {}
-    // Update status chip
-    if (IS_STANDALONE) {
-      setFileStatus("ios-pwa");
-    } else {
-      setFileStatus("ios-browser");
+
+    // Write to all available layers simultaneously
+    const writes = [];
+
+    // Layer 1: OPFS (most durable)
+    if (HAS_OPFS) {
+      writes.push(
+        opfsWrite(data).then(ok => { if (ok) opfsAvailable = true; })
+      );
     }
+
+    // Layer 2: IndexedDB
+    writes.push(
+      idbSet(IDB_STATE, IDB_STATE_KEY, data).catch(e => console.warn("IDB save failed:", e))
+    );
+
+    // Layer 3: localStorage (last resort)
+    try { localStorage.setItem(STORAGE_KEY, data); } catch(e) {}
+
+    await Promise.allSettled(writes);
+    updateStatusChip();
   }, 400);
 }
 
-// openExistingBackup — load data from a .json backup file
 async function openExistingBackup() {
   document.getElementById("importFileInput").click();
 }
 
-// exportSnapshot — save a dated copy (iOS share sheet or download fallback)
-async function exportSnapshot(mode) {
-  // mode: "new" (dated filename) | "replace" (fixed filename) | undefined (default dated)
+async function exportSnapshot() {
   const dateStr       = new Date().toISOString().slice(0, 10);
-  const suggestedName = (mode === "replace")
-    ? "finance-tracker-backup.json"
-    : `finance-backup-${dateStr}.json`;
-  const data         = JSON.stringify(buildStateObject(), null, 2);
+  const suggestedName = `finance-backup-${dateStr}.json`;
+  const data          = JSON.stringify(buildStateObject(), null, 2);
 
-  // iOS: Web Share API → share sheet → Save to Files / iCloud Drive
   if (IS_IOS && HAS_SHARE) {
     try {
       const blob = new File([data], suggestedName, { type: "application/json" });
@@ -1298,7 +1317,8 @@ async function exportSnapshot(mode) {
         try { await idbSet(IDB_PREFS, "lastExportedAt", lastExportedAt.toISOString()); } catch(e) {}
         setFileStatus("ios-backed");
         updatePersistentIOSBar(true);
-        // Revert to normal state after 5 seconds
+        // Remove nudge if it was showing
+        dismissBanner("backup-nudge-banner");
         setTimeout(() => {
           setFileStatus(IS_STANDALONE ? "ios-pwa" : "ios-browser");
           updatePersistentIOSBar(false);
@@ -1306,17 +1326,20 @@ async function exportSnapshot(mode) {
         if (activeView === "admin") renderAdminView();
         return;
       }
-    } catch(e) { if (e.name === "AbortError") return; console.error(e); }
+    } catch(e) {
+      if (e.name === "AbortError") return;
+      console.error(e);
+      return;
+    }
   }
 
-  // Fallback: trigger download
+  // Fallback: download
   const a = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([data], { type: "application/json" })),
     download: suggestedName
   });
   a.click(); URL.revokeObjectURL(a.href);
 }
-
 
 function importStateFromFile(file) {
   const r = new FileReader();
@@ -1366,14 +1389,11 @@ function renderHeader() {
 function renderLogView() {
   const container = document.getElementById("logView");
   ensureMonthExists(activeMonthKey);
-  const month    = months[activeMonthKey];
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  // Aggregate ALL transactions across every month bucket for "All Transactions"
   const allTxs = Object.entries(months).flatMap(([mk, mo]) =>
     (mo?.transactions || []).map(t => ({ ...t, _monthKey: mk }))
   );
-
   const usedCats = [...new Set(allTxs.map(t => t.category).filter(Boolean))].sort();
 
   let filtered = allTxs.filter(t => !txFilterCat || t.category === txFilterCat);
@@ -1385,12 +1405,9 @@ function renderLogView() {
     return 0;
   });
 
-  // Recent = last 5 across ALL months
   const recent = [...allTxs]
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO) || b.id.localeCompare(a.id))
     .slice(0, 5);
-
-  const totalCount = allTxs.length;
 
   container.innerHTML = `
     <div class="card">
@@ -1421,7 +1438,7 @@ function renderLogView() {
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">Recent Transactions</h2>
-        <span class="tx-count-badge">${totalCount} total</span>
+        <span class="tx-count-badge">${allTxs.length} total</span>
       </div>
       <div class="card-body">
         ${recent.length === 0
@@ -1462,7 +1479,6 @@ function renderLogView() {
     const amount   = Number(document.getElementById("logAmountInput").value || 0);
     const note     = document.getElementById("logNoteInput").value.trim();
     if (!dateVal || !category || !amount) { alert("Please fill in date, category, and amount."); return; }
-    // Route to the correct month bucket based on the transaction date
     const [dy, dm] = dateVal.split("-");
     const txMonthKey = dy + "-" + dm;
     ensureMonthExists(txMonthKey);
@@ -1472,7 +1488,6 @@ function renderLogView() {
 
   document.getElementById("txFilterCatSelect").addEventListener("change", e => { txFilterCat = e.target.value; renderLogView(); });
   document.getElementById("txSortSelect").addEventListener("change",      e => { txSortOrder = e.target.value; renderLogView(); });
-
   container.addEventListener("click",  handleTxClick);
   container.addEventListener("change", e => e.stopPropagation());
 }
@@ -1546,7 +1561,6 @@ function handleTxClick(e) {
     const [dy, dm]    = dateVal.split("-");
     const newMonthKey = dy + "-" + dm;
     if (newMonthKey !== srcMonthKey) {
-      // Move to the new month bucket
       const idx = srcMonth.transactions.findIndex(t => t.id === id);
       if (idx !== -1) srcMonth.transactions.splice(idx, 1);
       ensureMonthExists(newMonthKey);
@@ -1688,12 +1702,10 @@ function renderMonthlyView() {
   const [ty, tm] = todayKey.split("-").map(Number);
   const isYTD    = monthlyViewMode === "ytd";
 
-  // YTD: Jan through vm of vy (capped at current month if current year)
   const ytdEndMonth   = (vy === ty) ? tm : (vy < ty ? 12 : vm);
   const ytdMonthCount = ytdEndMonth;
   const ytdYear       = vy;
 
-  // Collect transactions for the view
   let viewTxs;
   if (isYTD) {
     viewTxs = [];
@@ -1708,7 +1720,6 @@ function renderMonthlyView() {
 
   const actuals = computeActuals(viewTxs);
 
-  // Nav labels
   const monthDiff = (vy - ty) * 12 + (vm - tm);
   const navSub = isYTD
     ? (vy === ty ? "Current Year" : vy < ty ? `${ty - vy} year${ty - vy > 1 ? "s" : ""} ago` : "")
@@ -1716,7 +1727,6 @@ function renderMonthlyView() {
   const navLabel   = isYTD ? `${ytdYear} Year to Date` : formatMonthLabelFromKey(monthlyViewKey);
   const canGoNext  = isYTD ? vy < ty : monthlyViewKey < todayKey;
 
-  // Budget totals (YTD = monthly × months elapsed)
   const monthlyBudget = allItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
   const totalBudget   = isYTD ? monthlyBudget * ytdMonthCount : monthlyBudget;
   const totalSpent    = Object.values(actuals).reduce((s, v) => s + v, 0);
@@ -1724,30 +1734,25 @@ function renderMonthlyView() {
   const overallPct    = totalBudget ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const overallCls    = overallPct >= 100 ? "over" : overallPct >= 80 ? "warn" : "under";
 
-  // Budget health counts
   let countOnTrack = 0, countAtRisk = 0, countOver = 0, countNotStarted = 0;
   allItems.forEach(item => {
     const actual = actuals[item.name] || 0;
     const budget = Number(item.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
     if (!budget) return;
-    if (!actual)       { countNotStarted++; return; }
+    if (!actual) { countNotStarted++; return; }
     const pct = actual / budget;
-    if (pct >= 1)        countOver++;
+    if (pct >= 1) countOver++;
     else if (pct >= 0.8) countAtRisk++;
-    else                 countOnTrack++;
+    else countOnTrack++;
   });
 
   const overItems = allItems
-    .filter(i => { const a = actuals[i.name]||0, b = Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); return b && a > b; })
-    .map(i => ({ name: i.name, actual: actuals[i.name]||0,
-      budget: Number(i.budgetAmount)*(isYTD?ytdMonthCount:1),
-      over:   (actuals[i.name]||0) - Number(i.budgetAmount)*(isYTD?ytdMonthCount:1) }));
+    .filter(i => { const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); return b&&a>b; })
+    .map(i => ({ name:i.name, actual:actuals[i.name]||0, budget:Number(i.budgetAmount)*(isYTD?ytdMonthCount:1), over:(actuals[i.name]||0)-Number(i.budgetAmount)*(isYTD?ytdMonthCount:1) }));
 
   const atRiskItems = allItems
     .filter(i => { const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); if(!b)return false; const p=a/b; return p>=0.8&&p<1; })
-    .map(i => ({ name: i.name, actual: actuals[i.name]||0,
-      budget: Number(i.budgetAmount)*(isYTD?ytdMonthCount:1),
-      pct:    ((actuals[i.name]||0)/(Number(i.budgetAmount)*(isYTD?ytdMonthCount:1)))*100 }));
+    .map(i => ({ name:i.name, actual:actuals[i.name]||0, budget:Number(i.budgetAmount)*(isYTD?ytdMonthCount:1), pct:((actuals[i.name]||0)/(Number(i.budgetAmount)*(isYTD?ytdMonthCount:1)))*100 }));
 
   const buckets = [
     { label:"🏠 Must Pay",       items:bills  },
@@ -1765,7 +1770,6 @@ function renderMonthlyView() {
     .filter(i => !Number(i.budgetAmount) && (actuals[i.name]||0) > 0)
     .map(i => ({ name:i.name, actual:actuals[i.name] }));
 
-  // Spending pace (monthly + current month only)
   const now = new Date();
   const daysInMonth    = new Date(vy, vm, 0).getDate();
   const isCurrentMonth = !isYTD && now.getFullYear()===vy && (now.getMonth()+1)===vm;
@@ -1776,7 +1780,6 @@ function renderMonthlyView() {
   const biggestTx = [...viewTxs].sort((a,b) => Number(b.amount)-Number(a.amount))[0];
   const avgTx     = viewTxs.length > 0 ? totalSpent/viewTxs.length : 0;
 
-  // YTD month-by-month rows
   const ytdMonthRows = isYTD ? (() => {
     const rows = [];
     for (let mo = 1; mo <= ytdEndMonth; mo++) {
@@ -1789,14 +1792,11 @@ function renderMonthlyView() {
   })() : [];
 
   container.innerHTML = `
-
-    <!-- View Mode Toggle -->
     <div class="view-mode-toggle">
       <button class="view-mode-btn ${!isYTD?"active":""}" id="modeMonthly">📅 Monthly</button>
       <button class="view-mode-btn ${isYTD ?"active":""}" id="modeYTD">📈 Year to Date</button>
     </div>
 
-    <!-- Navigator -->
     <div class="month-nav">
       <button class="month-nav-btn" id="monthNavPrev">&#8249;</button>
       <div class="month-nav-center">
@@ -1806,7 +1806,6 @@ function renderMonthlyView() {
       <button class="month-nav-btn" id="monthNavNext" ${canGoNext?"":"disabled"}>&#8250;</button>
     </div>
 
-    <!-- Snapshot -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">${isYTD?"📋 YTD Snapshot":"📋 Monthly Snapshot"}</h2></div>
       <div class="card-body">
@@ -1832,15 +1831,12 @@ function renderMonthlyView() {
         </div>
         <div style="text-align:center;padding:8px 0 0;">
           ${remaining>=0
-            ? `<span style="font-size:13px;color:var(--color-text-secondary);">Remaining: </span>
-               <span style="font-size:15px;font-weight:700;color:var(--color-success);">${fmt(remaining)}</span>`
-            : `<span style="font-size:13px;color:var(--color-text-secondary);">Over budget by: </span>
-               <span style="font-size:15px;font-weight:700;color:var(--color-danger);">${fmt(Math.abs(remaining))}</span>`}
+            ? `<span style="font-size:13px;color:var(--color-text-secondary);">Remaining: </span><span style="font-size:15px;font-weight:700;color:var(--color-success);">${fmt(remaining)}</span>`
+            : `<span style="font-size:13px;color:var(--color-text-secondary);">Over budget by: </span><span style="font-size:15px;font-weight:700;color:var(--color-danger);">${fmt(Math.abs(remaining))}</span>`}
         </div>
       </div>
     </div>
 
-    <!-- YTD: Month-by-Month -->
     ${isYTD ? `
     <div class="card">
       <div class="card-header"><h2 class="card-title">🗓️ Month-by-Month</h2></div>
@@ -1854,9 +1850,7 @@ function renderMonthlyView() {
                 <span style="color:var(--color-text-primary);font-weight:600;">${r.label}</span>
                 <span style="font-weight:700;color:${progressColor(cls)};">${fmt(r.spent)}</span>
               </div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
-              </div>
+              <div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>
             </div>`;
         }).join("")}
         <div style="display:flex;justify-content:space-between;font-size:12px;padding-top:8px;border-top:1px solid var(--color-border);margin-top:4px;">
@@ -1866,198 +1860,102 @@ function renderMonthlyView() {
       </div>
     </div>` : ""}
 
-    <!-- Quick Stats -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🔢 Quick Stats</h2></div>
       <div class="card-body">
-        <div class="insight-row">
-          <span class="insight-row-label">Total transactions</span>
-          <span class="insight-row-value" style="color:var(--color-primary);">${viewTxs.length}</span>
-        </div>
-        <div class="insight-row">
-          <span class="insight-row-label">Avg transaction size</span>
-          <span class="insight-row-value" style="color:var(--color-primary);">${fmt(avgTx)}</span>
-        </div>
+        <div class="insight-row"><span class="insight-row-label">Total transactions</span><span class="insight-row-value" style="color:var(--color-primary);">${viewTxs.length}</span></div>
+        <div class="insight-row"><span class="insight-row-label">Avg transaction size</span><span class="insight-row-value" style="color:var(--color-primary);">${fmt(avgTx)}</span></div>
         ${biggestTx ? `
-        <div class="insight-row">
-          <span class="insight-row-label">Largest transaction</span>
-          <span class="insight-row-value" style="color:var(--color-warning);">${fmt(biggestTx.amount)}</span>
-        </div>
-        <div class="insight-row" style="padding-top:2px;">
-          <span style="font-size:11px;color:var(--color-text-secondary);">
-            ${biggestTx.category}${biggestTx.note?" • "+biggestTx.note:""} · ${biggestTx.dateISO}
-          </span>
-        </div>` : ""}
+        <div class="insight-row"><span class="insight-row-label">Largest transaction</span><span class="insight-row-value" style="color:var(--color-warning);">${fmt(biggestTx.amount)}</span></div>
+        <div class="insight-row" style="padding-top:2px;"><span style="font-size:11px;color:var(--color-text-secondary);">${biggestTx.category}${biggestTx.note?" • "+biggestTx.note:""} · ${biggestTx.dateISO}</span></div>` : ""}
       </div>
     </div>
 
-    <!-- Budget Health -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🩺 Budget Health</h2></div>
       <div class="card-body">
         <div class="stat-grid-4" style="margin-bottom:${overItems.length||atRiskItems.length?"16px":"0"};">
-          ${[
-            {label:"On Track",    count:countOnTrack,    color:"var(--color-success)",        icon:"✅"},
-            {label:"At Risk",     count:countAtRisk,     color:"var(--color-warning)",        icon:"⚠️"},
-            {label:"Over Budget", count:countOver,       color:"var(--color-danger)",         icon:"🚨"},
-            {label:"Not Started", count:countNotStarted, color:"var(--color-text-secondary)", icon:"⏳"}
-          ].map(h=>`
-            <div class="health-tile">
-              <span class="health-tile-icon">${h.icon}</span>
-              <div>
-                <div class="health-tile-count" style="color:${h.color};">${h.count}</div>
-                <div class="health-tile-label">${h.label}</div>
-              </div>
-            </div>`).join("")}
+          ${[{label:"On Track",count:countOnTrack,color:"var(--color-success)",icon:"✅"},{label:"At Risk",count:countAtRisk,color:"var(--color-warning)",icon:"⚠️"},{label:"Over Budget",count:countOver,color:"var(--color-danger)",icon:"🚨"},{label:"Not Started",count:countNotStarted,color:"var(--color-text-secondary)",icon:"⏳"}]
+            .map(h=>`<div class="health-tile"><span class="health-tile-icon">${h.icon}</span><div><div class="health-tile-count" style="color:${h.color};">${h.count}</div><div class="health-tile-label">${h.label}</div></div></div>`).join("")}
         </div>
-        ${overItems.length>0?`
-          <div style="margin-bottom:12px;">
-            <div class="section-label" style="color:var(--color-danger);">Over Budget</div>
-            ${overItems.map(i=>`
-              <div class="insight-row">
-                <span class="insight-row-label">${i.name}</span>
-                <span class="insight-row-value" style="color:var(--color-danger);">+${fmt(i.over)} over</span>
-              </div>`).join("")}
-          </div>`:""}
-        ${atRiskItems.length>0?`
-          <div>
-            <div class="section-label" style="color:var(--color-warning);">At Risk (80–99%)</div>
-            ${atRiskItems.map(i=>`
-              <div class="insight-row">
-                <span class="insight-row-label">${i.name}</span>
-                <span class="insight-row-value" style="color:var(--color-warning);">${i.pct.toFixed(0)}% used</span>
-              </div>`).join("")}
-          </div>`:""}
-        ${overItems.length===0&&atRiskItems.length===0&&viewTxs.length>0
-          ?`<p style="font-size:13px;color:var(--color-success);margin:0;">✅ All categories on track!</p>`:""}
-        ${viewTxs.length===0
-          ?`<p class="text-muted" style="margin:0;">No transactions logged yet.</p>`:""}
+        ${overItems.length>0?`<div style="margin-bottom:12px;"><div class="section-label" style="color:var(--color-danger);">Over Budget</div>${overItems.map(i=>`<div class="insight-row"><span class="insight-row-label">${i.name}</span><span class="insight-row-value" style="color:var(--color-danger);">+${fmt(i.over)} over</span></div>`).join("")}</div>`:""}
+        ${atRiskItems.length>0?`<div><div class="section-label" style="color:var(--color-warning);">At Risk (80–99%)</div>${atRiskItems.map(i=>`<div class="insight-row"><span class="insight-row-label">${i.name}</span><span class="insight-row-value" style="color:var(--color-warning);">${i.pct.toFixed(0)}% used</span></div>`).join("")}</div>`:""}
+        ${overItems.length===0&&atRiskItems.length===0&&viewTxs.length>0?`<p style="font-size:13px;color:var(--color-success);margin:0;">✅ All categories on track!</p>`:""}
+        ${viewTxs.length===0?`<p class="text-muted" style="margin:0;">No transactions logged yet.</p>`:""}
       </div>
     </div>
 
-    <!-- Spending by Bucket -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🪣 Spending by Bucket</h2></div>
       <div class="card-body">
         ${buckets.map(bucket => {
-          const bMonthly = bucket.items.reduce((s,i)=>s+Number(i.budgetAmount||0),0);
-          const bTotal   = bMonthly*(isYTD?ytdMonthCount:1);
-          const aTotal   = bucket.items.reduce((s,i)=>s+(actuals[i.name]||0),0);
-          const pct      = bTotal ? Math.min((aTotal/bTotal)*100,100) : 0;
-          const cls      = progressClass(aTotal,bTotal);
-          const color    = progressColor(cls);
-          const bPct     = totalBudget ? ((bTotal/totalBudget)*100).toFixed(0) : 0;
+          const bMonthly=bucket.items.reduce((s,i)=>s+Number(i.budgetAmount||0),0);
+          const bTotal=bMonthly*(isYTD?ytdMonthCount:1);
+          const aTotal=bucket.items.reduce((s,i)=>s+(actuals[i.name]||0),0);
+          const pct=bTotal?Math.min((aTotal/bTotal)*100,100):0;
+          const cls=progressClass(aTotal,bTotal);
+          const color=progressColor(cls);
+          const bPct=totalBudget?((bTotal/totalBudget)*100).toFixed(0):0;
           return `
             <div style="margin-bottom:16px;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
                 <span style="font-size:13px;font-weight:600;color:var(--color-text-primary);">${bucket.label}</span>
-                <span style="font-size:12px;white-space:nowrap;">
-                  <span style="font-weight:700;color:${color};">${fmt(aTotal)}</span>
-                  <span style="color:var(--color-text-secondary);"> / ${bTotal?fmt(bTotal):"—"}</span>
-                </span>
+                <span style="font-size:12px;white-space:nowrap;"><span style="font-weight:700;color:${color};">${fmt(aTotal)}</span><span style="color:var(--color-text-secondary);"> / ${bTotal?fmt(bTotal):"—"}</span></span>
               </div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
-              </div>
+              <div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>
               ${bTotal?`<div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${bPct}% of total budget</div>`:""}
             </div>`;
         }).join("")}
       </div>
     </div>
 
-    <!-- Top 5 Spending -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">🏆 Top Spending</h2></div>
       <div class="card-body">
-        ${ranked.length===0
-          ? '<p class="text-muted">No spending logged yet.</p>'
-          : ranked.map((item,idx) => {
-              const pct   = item.budget ? Math.min((item.actual/item.budget)*100,100) : 0;
-              const cls   = progressClass(item.actual,item.budget);
-              const color = progressColor(cls);
-              const medal = ["🥇","🥈","🥉","4️⃣","5️⃣"][idx];
-              return `
-                <div style="margin-bottom:13px;">
-                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                    <span style="font-size:15px;line-height:1;flex-shrink:0;">${medal}</span>
-                    <span style="font-size:13px;color:var(--color-text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}</span>
-                    <span style="font-size:13px;font-weight:700;color:${color};white-space:nowrap;">${fmt(item.actual)}</span>
-                  </div>
-                  ${item.budget
-                    ?`<div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>`
-                    :`<div style="font-size:10px;color:var(--color-text-secondary);">No budget set</div>`}
-                </div>`;
-            }).join("")}
+        ${ranked.length===0?'<p class="text-muted">No spending logged yet.</p>':ranked.map((item,idx)=>{
+          const pct=item.budget?Math.min((item.actual/item.budget)*100,100):0;
+          const cls=progressClass(item.actual,item.budget);
+          const color=progressColor(cls);
+          const medal=["🥇","🥈","🥉","4️⃣","5️⃣"][idx];
+          return `<div style="margin-bottom:13px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-size:15px;line-height:1;flex-shrink:0;">${medal}</span><span style="font-size:13px;color:var(--color-text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}</span><span style="font-size:13px;font-weight:700;color:${color};white-space:nowrap;">${fmt(item.actual)}</span></div>${item.budget?`<div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div>`:`<div style="font-size:10px;color:var(--color-text-secondary);">No budget set</div>`}</div>`;
+        }).join("")}
       </div>
     </div>
 
-    <!-- Spending Pace (monthly, current month only) -->
     ${isCurrentMonth ? `
     <div class="card">
       <div class="card-header"><h2 class="card-title">📅 Spending Pace</h2></div>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
-          <span style="color:var(--color-text-secondary);">
-            Day <strong style="color:var(--color-text-primary);">${dayOfMonth}</strong>
-            of <strong style="color:var(--color-text-primary);">${daysInMonth}</strong>
-          </span>
+          <span style="color:var(--color-text-secondary);">Day <strong style="color:var(--color-text-primary);">${dayOfMonth}</strong> of <strong style="color:var(--color-text-primary);">${daysInMonth}</strong></span>
           <span style="font-weight:700;color:var(--color-primary);">${pacePct.toFixed(0)}% through the month</span>
         </div>
-        <div class="progress-bar-track" style="margin-bottom:14px;">
-          <div class="progress-bar-fill unset" style="width:${pacePct}%;"></div>
-        </div>
+        <div class="progress-bar-track" style="margin-bottom:14px;"><div class="progress-bar-fill unset" style="width:${pacePct}%;"></div></div>
         <div class="stat-grid-2" style="margin-bottom:${monthlyBudget>0?"12px":"0"};">
-          <div class="stat-tile">
-            <div class="stat-tile-label">Spent So Far</div>
-            <div class="stat-tile-value" style="color:var(--color-primary);font-size:18px;">${fmt(totalSpent)}</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-tile-label">Projected End-of-Month</div>
-            <div class="stat-tile-value" style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-warning)"};font-size:18px;">${fmt(projectedSpend)}</div>
-          </div>
+          <div class="stat-tile"><div class="stat-tile-label">Spent So Far</div><div class="stat-tile-value" style="color:var(--color-primary);font-size:18px;">${fmt(totalSpent)}</div></div>
+          <div class="stat-tile"><div class="stat-tile-label">Projected End-of-Month</div><div class="stat-tile-value" style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-warning)"};font-size:18px;">${fmt(projectedSpend)}</div></div>
         </div>
-        ${monthlyBudget>0?`
-          <p style="font-size:12px;color:var(--color-text-secondary);margin:0;text-align:center;line-height:1.6;">
-            At this pace you'll finish
-            <strong style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-success)"};">
-              ${projectedSpend>monthlyBudget
-                ? fmt(projectedSpend-monthlyBudget)+" over budget"
-                : fmt(monthlyBudget-projectedSpend)+" under budget"}
-            </strong>
-          </p>`:""}
+        ${monthlyBudget>0?`<p style="font-size:12px;color:var(--color-text-secondary);margin:0;text-align:center;line-height:1.6;">At this pace you'll finish <strong style="color:${projectedSpend>monthlyBudget?"var(--color-danger)":"var(--color-success)"};">${projectedSpend>monthlyBudget?fmt(projectedSpend-monthlyBudget)+" over budget":fmt(monthlyBudget-projectedSpend)+" under budget"}</strong></p>`:""}
       </div>
     </div>` : ""}
 
-    <!-- Unbudgeted Spending -->
     ${unbudgeted.length>0 ? `
     <div class="card">
       <div class="card-header"><h2 class="card-title">🔍 Unbudgeted Spending</h2></div>
       <div class="card-body">
-        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">
-          Spending logged in categories with no budget set. Consider adding budgets in Admin.
-        </p>
-        ${unbudgeted.map(i=>`
-          <div class="insight-row">
-            <span class="insight-row-label">${i.name}</span>
-            <span class="insight-row-value" style="color:var(--color-warning);">${fmt(i.actual)}</span>
-          </div>`).join("")}
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">Spending logged in categories with no budget set. Consider adding budgets in Admin.</p>
+        ${unbudgeted.map(i=>`<div class="insight-row"><span class="insight-row-label">${i.name}</span><span class="insight-row-value" style="color:var(--color-warning);">${fmt(i.actual)}</span></div>`).join("")}
       </div>
     </div>` : ""}
   `;
 
-  // Toggle handlers
   document.getElementById("modeMonthly").addEventListener("click", () => { monthlyViewMode = "monthly"; renderMonthlyView(); });
   document.getElementById("modeYTD").addEventListener("click",     () => { monthlyViewMode = "ytd";     renderMonthlyView(); });
 
-  // Nav handlers
   document.getElementById("monthNavPrev").addEventListener("click", () => {
-    if (isYTD) {
-      monthlyViewKey = (vy-1) + "-" + String(vm).padStart(2,"0");
-    } else {
-      monthlyViewKey = formatMonthKey(new Date(vy, vm-2, 1));
-    }
-    ensureMonthExists(monthlyViewKey);
-    renderMonthlyView();
+    if (isYTD) { monthlyViewKey = (vy-1) + "-" + String(vm).padStart(2,"0"); }
+    else { monthlyViewKey = formatMonthKey(new Date(vy, vm-2, 1)); }
+    ensureMonthExists(monthlyViewKey); renderMonthlyView();
   });
   document.getElementById("monthNavNext")?.addEventListener("click", () => {
     if (isYTD) {
@@ -2070,7 +1968,7 @@ function renderMonthlyView() {
 }
 
 // ─────────────────────────────────────────
-//  ANNUAL VIEW
+//  ANNUAL / FUTURE VIEW
 // ─────────────────────────────────────────
 
 function renderAnnualView() {
@@ -2078,7 +1976,6 @@ function renderAnnualView() {
   const goals       = plannerState.goals || [];
   const mustPayMonthly = (appSettings.recurringBills||[]).reduce((s,i)=>s+Number(i.budgetAmount||0),0);
 
-  // ── Shared helpers ──
   function calcMonthlyPayment(principal, rate, years) {
     if (!principal||!rate) return 0;
     const r=rate/100/12, n=years*12;
@@ -2093,18 +1990,15 @@ function renderAnnualView() {
     return {monthsLeft:n, projectedDate:d.toLocaleString(undefined,{month:"short",year:"numeric"})};
   }
 
-  // ── Tab definitions (overview + one per goal) ──
   const tabs = [
     { id:"overview", icon:"📊", label:"Overview" },
     ...goals.map(g => ({ id:g.id, icon:g.icon||"🎯", label:g.name.split(" ")[0] }))
   ];
 
-  // Ensure active tab is still valid
   if (futureActiveTab !== "overview" && !goals.find(g=>g.id===futureActiveTab)) {
     futureActiveTab = "overview";
   }
 
-  // ── Tab nav HTML ──
   const tabNav = `
     <div class="future-tab-nav">
       ${tabs.map(t=>`
@@ -2114,9 +2008,6 @@ function renderAnnualView() {
         </button>`).join("")}
     </div>`;
 
-  // ════════════════════════════════
-  //  OVERVIEW TAB
-  // ════════════════════════════════
   function renderOverview() {
     const rows = goals.map(g => {
       let pct=0, sub="", color="var(--color-primary)";
@@ -2159,19 +2050,13 @@ function renderAnnualView() {
           </div>
         </div>`;
     }).join("");
-
     return `
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="card-header" style="padding:14px 16px 12px;"><h2 class="card-title">Your Goals</h2></div>
-        ${goals.length===0
-          ? '<p class="text-muted" style="padding:20px 16px;">No goals yet — add one below.</p>'
-          : `<div>${rows}</div>`}
+        ${goals.length===0?'<p class="text-muted" style="padding:20px 16px;">No goals yet — add one below.</p>':`<div>${rows}</div>`}
       </div>`;
   }
 
-  // ════════════════════════════════
-  //  EMERGENCY FUND TAB
-  // ════════════════════════════════
   function renderEmergencyTab(g) {
     const isEditing = editingGoalId === g.id;
     const current   = Number(g.currentAmount||0);
@@ -2185,25 +2070,16 @@ function renderAnnualView() {
     const MONTHS=[2,3,4,5,6,7,8];
 
     return `
-      <!-- Savings status -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">🛡️ Current Status</h2></div>
         <div class="card-body">
           <div class="stat-grid-2" style="margin-bottom:14px;">
-            <div class="stat-tile">
-              <div class="stat-tile-label">Currently Saved</div>
-              <div class="stat-tile-value" style="color:${color};">${fmt(current)}</div>
-            </div>
-            <div class="stat-tile">
-              <div class="stat-tile-label">Monthly Must-Pays</div>
-              <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(mustPayMonthly)}</div>
-            </div>
+            <div class="stat-tile"><div class="stat-tile-label">Currently Saved</div><div class="stat-tile-value" style="color:${color};">${fmt(current)}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Monthly Must-Pays</div><div class="stat-tile-value" style="color:var(--color-primary);">${fmt(mustPayMonthly)}</div></div>
           </div>
           ${mustPayMonthly===0?`<p style="font-size:12px;color:var(--color-warning);margin:0;">⚠️ Add Must-Pay bills in Admin to see coverage calculations.</p>`:""}
         </div>
       </div>
-
-      <!-- Coverage range -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">📊 Coverage Range (2–8 months)</h2></div>
         <div class="card-body">
@@ -2213,281 +2089,111 @@ function renderAnnualView() {
             const isBase=mo===baseline, isGoal=mo===goalMo;
             const barColor=isGoal?"var(--color-primary)":isBase?"var(--color-success)":"rgba(148,163,184,0.3)";
             const tag=isBase?" 🔒":isGoal?" 🎯":"";
-            return `
-              <div class="ef-month-bar-row">
-                <span class="ef-month-label">${mo} mo${tag}</span>
-                <div class="progress-bar-track" style="flex:1;height:8px;">
-                  <div class="progress-bar-fill" style="width:${pct}%;background:${barColor};border-radius:4px;"></div>
-                </div>
-                <span class="ef-month-amount">${fmt(tgt)}</span>
-              </div>`;
+            return `<div class="ef-month-bar-row"><span class="ef-month-label">${mo} mo${tag}</span><div class="progress-bar-track" style="flex:1;height:8px;"><div class="progress-bar-fill" style="width:${pct}%;background:${barColor};border-radius:4px;"></div></div><span class="ef-month-amount">${fmt(tgt)}</span></div>`;
           }).join("")}
         </div>
       </div>
-
-      <!-- Milestones -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">🎯 Your Targets</h2></div>
         <div class="card-body">
-          ${[{label:`Baseline — ${baseline} months`,icon:"🔒",tgt:baseTgt,pct:basePct,color:"var(--color-success)"},
-             {label:`Full Goal — ${goalMo} months`, icon:"🎯",tgt:goalTgt,pct:goalPct,color:"var(--color-primary)"}
-            ].map(m=>`
-              <div class="ef-milestone-row" style="margin-bottom:8px;">
-                <span class="ef-milestone-icon">${m.icon}</span>
-                <div style="flex:1;">
-                  <div class="ef-milestone-label">${m.label}</div>
-                  <div class="ef-milestone-sub">${m.pct<100?fmt(m.tgt-current)+" still needed":"✅ Achieved!"}</div>
-                </div>
-                <div style="text-align:right;">
-                  <div class="ef-milestone-value" style="color:${m.pct>=100?"var(--color-success)":m.color};">${fmt(m.tgt)}</div>
-                  <div style="font-size:10px;color:var(--color-text-secondary);">${m.pct.toFixed(0)}% funded</div>
-                </div>
-              </div>`).join("")}
+          ${[{label:`Baseline — ${baseline} months`,icon:"🔒",tgt:baseTgt,pct:basePct,color:"var(--color-success)"},{label:`Full Goal — ${goalMo} months`,icon:"🎯",tgt:goalTgt,pct:goalPct,color:"var(--color-primary)"}]
+            .map(m=>`<div class="ef-milestone-row" style="margin-bottom:8px;"><span class="ef-milestone-icon">${m.icon}</span><div style="flex:1;"><div class="ef-milestone-label">${m.label}</div><div class="ef-milestone-sub">${m.pct<100?fmt(m.tgt-current)+" still needed":"✅ Achieved!"}</div></div><div style="text-align:right;"><div class="ef-milestone-value" style="color:${m.pct>=100?"var(--color-success)":m.color};">${fmt(m.tgt)}</div><div style="font-size:10px;color:var(--color-text-secondary);">${m.pct.toFixed(0)}% funded</div></div></div>`).join("")}
         </div>
       </div>
-
-      <!-- Edit -->
       ${isEditing ? `
       <div class="card">
         <div class="card-header"><h2 class="card-title">✏️ Update</h2></div>
         <div class="card-body">
-          <div style="margin-bottom:12px;">
-            <label class="goal-field-label">Currently Saved ($)</label>
-            <input class="goal-input" type="number" step="0.01" data-edit-field="currentAmount" value="${current}">
-          </div>
-          <div style="margin-bottom:12px;">
-            <label class="goal-field-label">Baseline — minimum target (months of Must-Pays)</label>
-            <div class="ef-month-selector" id="efBaselineOpts">
-              ${MONTHS.map(mo=>`<span class="ef-month-opt${mo===baseline?" active-baseline":""}" data-ef-baseline="${mo}">${mo} mo</span>`).join("")}
-            </div>
-            <input type="hidden" id="efBaselineVal" value="${baseline}">
-          </div>
-          <div style="margin-bottom:14px;">
-            <label class="goal-field-label">Full Goal — stretch target (months of Must-Pays)</label>
-            <div class="ef-month-selector" id="efGoalOpts">
-              ${MONTHS.map(mo=>`<span class="ef-month-opt${mo===goalMo?" active-goal":""}" data-ef-goal="${mo}">${mo} mo</span>`).join("")}
-            </div>
-            <input type="hidden" id="efGoalVal" value="${goalMo}">
-          </div>
-          <div class="goal-actions">
-            <button class="admin-btn" data-goal-action="cancel-edit" data-id="${g.id}">Cancel</button>
-            <button class="admin-btn admin-btn-success" data-goal-action="save-ef" data-id="${g.id}">✓ Save</button>
-          </div>
+          <div style="margin-bottom:12px;"><label class="goal-field-label">Currently Saved ($)</label><input class="goal-input" type="number" step="0.01" data-edit-field="currentAmount" value="${current}"></div>
+          <div style="margin-bottom:12px;"><label class="goal-field-label">Baseline — minimum target (months of Must-Pays)</label><div class="ef-month-selector" id="efBaselineOpts">${MONTHS.map(mo=>`<span class="ef-month-opt${mo===baseline?" active-baseline":""}" data-ef-baseline="${mo}">${mo} mo</span>`).join("")}</div><input type="hidden" id="efBaselineVal" value="${baseline}"></div>
+          <div style="margin-bottom:14px;"><label class="goal-field-label">Full Goal — stretch target (months of Must-Pays)</label><div class="ef-month-selector" id="efGoalOpts">${MONTHS.map(mo=>`<span class="ef-month-opt${mo===goalMo?" active-goal":""}" data-ef-goal="${mo}">${mo} mo</span>`).join("")}</div><input type="hidden" id="efGoalVal" value="${goalMo}"></div>
+          <div class="goal-actions"><button class="admin-btn" data-goal-action="cancel-edit" data-id="${g.id}">Cancel</button><button class="admin-btn admin-btn-success" data-goal-action="save-ef" data-id="${g.id}">✓ Save</button></div>
         </div>
-      </div>` : `
-      <div style="display:flex;justify-content:center;">
-        <button class="admin-btn" data-goal-action="edit" data-id="${g.id}">✏️ Update Savings & Targets</button>
-      </div>`}`;
+      </div>` : `<div style="display:flex;justify-content:center;"><button class="admin-btn" data-goal-action="edit" data-id="${g.id}">✏️ Update Savings & Targets</button></div>`}`;
   }
 
-  // ════════════════════════════════
-  //  HOME PURCHASE TAB
-  // ════════════════════════════════
   function renderHomeTab(g) {
-    // ── Pull all values from state (with defaults) ──
-    const scenarios       = g.scenarios       || [{homePrice:225000,downPct:20},{homePrice:245000,downPct:20},{homePrice:265000,downPct:20}];
-    const sc              = scenarios[activeHomeScenario] || scenarios[0];
-    const current         = Number(g.currentSavings    || 0);
-    const netIncome       = Number(g.monthlyNetIncome  || 0);
-    const rate            = Number(g.interestRate      ?? 6.25);
-    const years           = Number(g.loanTermYears     ?? 30);
-    const hoaFee          = Number(g.hoaFee            ?? 300);
-    const propTaxRate     = Number(g.propTaxRate       ?? 1.7);
-    const hoiRate         = Number(g.hoiRate           ?? 0.5);
-    const pmiRate         = Number(g.pmiRate           ?? 0.75);
-    const lenderTitleRate = Number(g.lenderTitleRate   ?? 2.0);
-    const appraisal       = Number(g.appraisal         ?? 600);
-    const inspection      = Number(g.inspection        ?? 500);
-    const countyTaxRate   = Number(g.countyTaxRate     ?? 0.5);
-    const stateTaxRate    = Number(g.stateTaxRate      ?? 0.75);
-    const mortgageTaxRate = Number(g.mortgageTaxRate   ?? 0.375);
-    const prepaidRate     = Number(g.prepaidEscrowRate ?? 2.0);
-    const attorneyFees    = Number(g.attorneyFees      ?? 750);
-    const movingCost      = Number(g.movingCost        ?? 1500);
-    const utilityDeposits = Number(g.utilityDeposits   ?? 350);
-    const furnishingsRate = Number(g.furnishingsRate   ?? 2.0);
-    const repairsRate     = Number(g.repairsRate       ?? 1.0);
-    const reserveMonths   = Number(g.reserveMonths     ?? 3);
-    const homePrice       = Number(sc.homePrice || 0);
-    const downPct         = Number(sc.downPct   || 20);
-
-    // ── Derived calculations ──
-    const downAmt    = homePrice * downPct / 100;
-    const loanAmt    = homePrice - downAmt;
-    const pi         = calcMonthlyPayment(loanAmt, rate, years);
-    const propTaxMo  = homePrice * propTaxRate / 100 / 12;
-    const hoiMo      = homePrice * hoiRate / 100 / 12;
-    const pmiMo      = downPct < 20 ? loanAmt * pmiRate / 100 / 12 : 0;
-    const total      = pi + propTaxMo + hoiMo + pmiMo + hoaFee;
-
-    const lenderTitle   = homePrice * lenderTitleRate / 100;
-    const countyTax     = homePrice * countyTaxRate / 100;
-    const stateTax      = homePrice * stateTaxRate / 100;
-    const mortgageTax   = loanAmt  * mortgageTaxRate / 100;
-    const prepaidEscrow = homePrice * prepaidRate / 100;
-    const totalClosing  = lenderTitle + appraisal + inspection + countyTax + stateTax + mortgageTax + prepaidEscrow + attorneyFees;
-
-    const furnishings = homePrice * furnishingsRate / 100;
-    const repairs     = homePrice * repairsRate / 100;
-    const totalMoveIn = movingCost + utilityDeposits + furnishings + repairs;
-
-    const reserve    = total * reserveMonths;
-    const totalCash  = downAmt + totalClosing + totalMoveIn + reserve;
-    const shortfall  = Math.max(0, totalCash - current);
-    const cashPct    = totalCash ? Math.min((current / totalCash) * 100, 100) : 0;
-    const cashColor  = cashPct >= 100 ? "var(--color-success)" : cashPct >= 60 ? "var(--color-warning)" : "var(--color-primary)";
-    const mustPay    = (appSettings.recurringBills||[]).reduce((s,i)=>s+Number(i.budgetAmount||0),0);
-    const subsPay    = (appSettings.recurringSubscriptions||[]).reduce((s,i)=>s+Number(i.budgetAmount||0),0);
-
-    function affordRow(label, deductions) {
-      const left = netIncome - deductions - total, can = left >= 0;
-      return `<div class="hp-afford-row">
-        <span class="hp-afford-label">${label}</span>
-        <span class="hp-afford-value" style="color:${can?"var(--color-success)":"var(--color-danger)"};">
-          ${can ? "✅ "+fmt(left)+" left" : "❌ "+fmt(Math.abs(left))+" short"}
-        </span>
-      </div>`;
-    }
-
-    function field(label, id, val, opts="") {
-      return `<div>
-        <label class="hp-input-label">${label}</label>
-        <input class="goal-input" id="${id}" type="number" value="${val}" ${opts}>
-      </div>`;
-    }
-    function pctField(label, id, val) { return field(label, id, val, 'step="0.01" min="0"'); }
-    function dolField(label, id, val) { return field(label, id, val, 'step="50" min="0"'); }
+    const scenarios=g.scenarios||[{homePrice:225000,downPct:20},{homePrice:245000,downPct:20},{homePrice:265000,downPct:20}];
+    const sc=scenarios[activeHomeScenario]||scenarios[0];
+    const current=Number(g.currentSavings||0), netIncome=Number(g.monthlyNetIncome||0);
+    const rate=Number(g.interestRate??6.25), years=Number(g.loanTermYears??30), hoaFee=Number(g.hoaFee??300);
+    const propTaxRate=Number(g.propTaxRate??1.7), hoiRate=Number(g.hoiRate??0.5), pmiRate=Number(g.pmiRate??0.75);
+    const lenderTitleRate=Number(g.lenderTitleRate??2.0), appraisal=Number(g.appraisal??600), inspection=Number(g.inspection??500);
+    const countyTaxRate=Number(g.countyTaxRate??0.5), stateTaxRate=Number(g.stateTaxRate??0.75), mortgageTaxRate=Number(g.mortgageTaxRate??0.375);
+    const prepaidRate=Number(g.prepaidEscrowRate??2.0), attorneyFees=Number(g.attorneyFees??750);
+    const movingCost=Number(g.movingCost??1500), utilityDeposits=Number(g.utilityDeposits??350);
+    const furnishingsRate=Number(g.furnishingsRate??2.0), repairsRate=Number(g.repairsRate??1.0), reserveMonths=Number(g.reserveMonths??3);
+    const homePrice=Number(sc.homePrice||0), downPct=Number(sc.downPct||20);
+    const downAmt=homePrice*downPct/100, loanAmt=homePrice-downAmt;
+    const pi=calcMonthlyPayment(loanAmt,rate,years);
+    const propTaxMo=homePrice*propTaxRate/100/12, hoiMo=homePrice*hoiRate/100/12, pmiMo=downPct<20?loanAmt*pmiRate/100/12:0;
+    const total=pi+propTaxMo+hoiMo+pmiMo+hoaFee;
+    const lenderTitle=homePrice*lenderTitleRate/100, countyTax=homePrice*countyTaxRate/100, stateTax=homePrice*stateTaxRate/100;
+    const mortgageTax=loanAmt*mortgageTaxRate/100, prepaidEscrow=homePrice*prepaidRate/100;
+    const totalClosing=lenderTitle+appraisal+inspection+countyTax+stateTax+mortgageTax+prepaidEscrow+attorneyFees;
+    const furnishings=homePrice*furnishingsRate/100, repairs=homePrice*repairsRate/100;
+    const totalMoveIn=movingCost+utilityDeposits+furnishings+repairs;
+    const reserve=total*reserveMonths, totalCash=downAmt+totalClosing+totalMoveIn+reserve;
+    const shortfall=Math.max(0,totalCash-current), cashPct=totalCash?Math.min((current/totalCash)*100,100):0;
+    const cashColor=cashPct>=100?"var(--color-success)":cashPct>=60?"var(--color-warning)":"var(--color-primary)";
+    const mustPay=(appSettings.recurringBills||[]).reduce((s,i)=>s+Number(i.budgetAmount||0),0);
+    const subsPay=(appSettings.recurringSubscriptions||[]).reduce((s,i)=>s+Number(i.budgetAmount||0),0);
+    function affordRow(label,deductions){const left=netIncome-deductions-total,can=left>=0;return`<div class="hp-afford-row"><span class="hp-afford-label">${label}</span><span class="hp-afford-value" style="color:${can?"var(--color-success)":"var(--color-danger)"};">${can?"✅ "+fmt(left)+" left":"❌ "+fmt(Math.abs(left))+" short"}</span></div>`;}
+    function field(label,id,val,opts=""){return`<div><label class="hp-input-label">${label}</label><input class="goal-input" id="${id}" type="number" value="${val}" ${opts}></div>`;}
+    function pctField(l,id,v){return field(l,id,v,'step="0.01" min="0"');}
+    function dolField(l,id,v){return field(l,id,v,'step="50" min="0"');}
 
     return `
-
-      <!-- ══ CURRENT STATUS ══ -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">🏡 Current Status</h2></div>
         <div class="card-body">
           <div class="stat-grid-2" style="margin-bottom:14px;">
-            <div class="stat-tile">
-              <div class="stat-tile-label">House Savings</div>
-              <div class="stat-tile-value" style="color:${cashColor};">${fmt(current)}</div>
-            </div>
-            <div class="stat-tile">
-              <div class="stat-tile-label">Net Income / mo</div>
-              <div class="stat-tile-value" style="color:var(--color-primary);">${netIncome > 0 ? fmt(netIncome) : "—"}</div>
-            </div>
+            <div class="stat-tile"><div class="stat-tile-label">House Savings</div><div class="stat-tile-value" style="color:${cashColor};">${fmt(current)}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Net Income / mo</div><div class="stat-tile-value" style="color:var(--color-primary);">${netIncome>0?fmt(netIncome):"—"}</div></div>
           </div>
-          ${totalCash > 0 ? `
-            <div class="progress-bar-track" style="height:9px;margin-bottom:6px;">
-              <div class="progress-bar-fill" style="width:${cashPct}%;background:${cashColor};border-radius:4px;"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:11px;color:var(--color-text-secondary);">${cashPct.toFixed(0)}% of total cash goal</span>
-              <span style="font-size:12px;font-weight:700;color:${shortfall>0?"var(--color-danger)":"var(--color-success)"};">
-                ${shortfall > 0 ? "−"+fmt(shortfall)+" to go" : "🎉 Goal Met!"}
-              </span>
-            </div>
-          ` : `<p style="font-size:12px;color:var(--color-text-secondary);margin:0;">Enter a home price in Inputs to see progress.</p>`}
+          ${totalCash>0?`<div class="progress-bar-track" style="height:9px;margin-bottom:6px;"><div class="progress-bar-fill" style="width:${cashPct}%;background:${cashColor};border-radius:4px;"></div></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:var(--color-text-secondary);">${cashPct.toFixed(0)}% of total cash goal</span><span style="font-size:12px;font-weight:700;color:${shortfall>0?"var(--color-danger)":"var(--color-success)"};">${shortfall>0?"−"+fmt(shortfall)+" to go":"🎉 Goal Met!"}</span></div>`:`<p style="font-size:12px;color:var(--color-text-secondary);margin:0;">Enter a home price in Inputs to see progress.</p>`}
         </div>
       </div>
-
-      <!-- ══ SCENARIO TABS ══ -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">🏠 Active Scenario</h2></div>
         <div class="card-body">
           <div class="hp-scenario-tabs">
-            ${scenarios.map((s,i)=>`
-              <div class="hp-scenario-tab${i===activeHomeScenario?" active":""}"
-                   data-goal-action="home-scenario" data-id="${g.id}" data-sc="${i}">
-                <div style="font-size:10px;font-weight:800;letter-spacing:.5px;">${["A","B","C"][i]}</div>
-                <div style="font-size:12px;font-weight:700;">${fmt(s.homePrice||0)}</div>
-                <div style="font-size:10px;color:var(--color-text-secondary);">${s.downPct||20}% down</div>
-              </div>`).join("")}
+            ${scenarios.map((s,i)=>`<div class="hp-scenario-tab${i===activeHomeScenario?" active":""}" data-goal-action="home-scenario" data-id="${g.id}" data-sc="${i}"><div style="font-size:10px;font-weight:800;letter-spacing:.5px;">${["A","B","C"][i]}</div><div style="font-size:12px;font-weight:700;">${fmt(s.homePrice||0)}</div><div style="font-size:10px;color:var(--color-text-secondary);">${s.downPct||20}% down</div></div>`).join("")}
           </div>
         </div>
       </div>
-
-      <!-- ══ MONTHLY PAYMENT ══ -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">📅 Monthly Payment</h2></div>
         <div class="card-body">
-          ${[
-            ["Principal & Interest",                          pi],
-            [`Property Tax (${propTaxRate}%/yr)`,            propTaxMo],
-            [`Homeowners Insurance (${hoiRate}%/yr)`,        hoiMo],
-            [`PMI (${pmiRate}%/yr)`+(downPct>=20?" — waived":""), pmiMo],
-            ["HOA / Condo Fee",                              hoaFee],
-          ].map(([l,v])=>`
-            <div class="hp-row">
-              <span class="hp-row-label">${l}</span>
-              <span class="hp-row-value" style="${!v?"opacity:.3;":""}">${v>0?fmt(v):"—"}</span>
-            </div>`).join("")}
-          <div class="hp-total-row">
-            <span class="hp-total-label">Total Monthly</span>
-            <span class="hp-total-value">${fmt(total)}</span>
-          </div>
+          ${[["Principal & Interest",pi],[`Property Tax (${propTaxRate}%/yr)`,propTaxMo],[`Homeowners Insurance (${hoiRate}%/yr)`,hoiMo],[`PMI (${pmiRate}%/yr)`+(downPct>=20?" — waived":""),pmiMo],["HOA / Condo Fee",hoaFee]]
+            .map(([l,v])=>`<div class="hp-row"><span class="hp-row-label">${l}</span><span class="hp-row-value" style="${!v?"opacity:.3;":""}">${v>0?fmt(v):"—"}</span></div>`).join("")}
+          <div class="hp-total-row"><span class="hp-total-label">Total Monthly</span><span class="hp-total-value">${fmt(total)}</span></div>
         </div>
       </div>
-
-      <!-- ══ CASH AT CLOSING ══ -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">💰 Cash Needed at Closing</h2></div>
         <div class="card-body">
           <div class="hp-section-title" style="margin-bottom:8px;">Down Payment</div>
           <div class="hp-row"><span class="hp-row-label">Down Payment (${downPct}%)</span><span class="hp-row-value">${fmt(downAmt)}</span></div>
-
           <div class="hp-section-title" style="margin:12px 0 8px;">Closing Costs</div>
-          ${[
-            [`Lender / Title (${lenderTitleRate}%)`, lenderTitle],
-            ["Appraisal",                            appraisal],
-            ["Home Inspection",                      inspection],
-            [`County Transfer Tax (${countyTaxRate}%)`, countyTax],
-            [`State Transfer Tax (${stateTaxRate}%)`,   stateTax],
-            [`Mortgage Recording Tax (${mortgageTaxRate}%)`, mortgageTax],
-            [`Prepaid Escrow (${prepaidRate}%)`,     prepaidEscrow],
-            ["Attorney Fees",                        attorneyFees],
-          ].map(([l,v])=>`<div class="hp-row"><span class="hp-row-label">${l}</span><span class="hp-row-value">${fmt(v)}</span></div>`).join("")}
-          <div class="hp-row" style="padding-top:5px;border-top:1px solid var(--color-border);margin-top:4px;">
-            <span class="hp-row-label" style="font-weight:600;">Total Closing</span>
-            <span class="hp-row-value" style="color:var(--color-primary);">${fmt(totalClosing)}</span>
-          </div>
-
+          ${[[`Lender / Title (${lenderTitleRate}%)`,lenderTitle],["Appraisal",appraisal],["Home Inspection",inspection],[`County Transfer Tax (${countyTaxRate}%)`,countyTax],[`State Transfer Tax (${stateTaxRate}%)`,stateTax],[`Mortgage Recording Tax (${mortgageTaxRate}%)`,mortgageTax],[`Prepaid Escrow (${prepaidRate}%)`,prepaidEscrow],["Attorney Fees",attorneyFees]]
+            .map(([l,v])=>`<div class="hp-row"><span class="hp-row-label">${l}</span><span class="hp-row-value">${fmt(v)}</span></div>`).join("")}
+          <div class="hp-row" style="padding-top:5px;border-top:1px solid var(--color-border);margin-top:4px;"><span class="hp-row-label" style="font-weight:600;">Total Closing</span><span class="hp-row-value" style="color:var(--color-primary);">${fmt(totalClosing)}</span></div>
           <div class="hp-section-title" style="margin:12px 0 8px;">Move-In Costs</div>
-          ${[
-            ["Moving / Movers",                      movingCost],
-            ["Utility Deposits",                     utilityDeposits],
-            [`Furnishings (${furnishingsRate}%)`,    furnishings],
-            [`Immediate Repairs (${repairsRate}%)`,  repairs],
-          ].map(([l,v])=>`<div class="hp-row"><span class="hp-row-label">${l}</span><span class="hp-row-value">${fmt(v)}</span></div>`).join("")}
-          <div class="hp-row" style="padding-top:5px;border-top:1px solid var(--color-border);margin-top:4px;">
-            <span class="hp-row-label" style="font-weight:600;">Total Move-In</span>
-            <span class="hp-row-value" style="color:var(--color-primary);">${fmt(totalMoveIn)}</span>
-          </div>
-
+          ${[["Moving / Movers",movingCost],["Utility Deposits",utilityDeposits],[`Furnishings (${furnishingsRate}%)`,furnishings],[`Immediate Repairs (${repairsRate}%)`,repairs]]
+            .map(([l,v])=>`<div class="hp-row"><span class="hp-row-label">${l}</span><span class="hp-row-value">${fmt(v)}</span></div>`).join("")}
+          <div class="hp-row" style="padding-top:5px;border-top:1px solid var(--color-border);margin-top:4px;"><span class="hp-row-label" style="font-weight:600;">Total Move-In</span><span class="hp-row-value" style="color:var(--color-primary);">${fmt(totalMoveIn)}</span></div>
           <div class="hp-section-title" style="margin:12px 0 8px;">Payment Reserve</div>
-          <div class="hp-row">
-            <span class="hp-row-label">${reserveMonths}-Month Buffer (${fmt(total)}/mo)</span>
-            <span class="hp-row-value">${fmt(reserve)}</span>
-          </div>
-
-          <div class="hp-total-row" style="margin-top:8px;">
-            <span class="hp-total-label">Total Cash Needed</span>
-            <span class="hp-total-value">${fmt(totalCash)}</span>
-          </div>
+          <div class="hp-row"><span class="hp-row-label">${reserveMonths}-Month Buffer (${fmt(total)}/mo)</span><span class="hp-row-value">${fmt(reserve)}</span></div>
+          <div class="hp-total-row" style="margin-top:8px;"><span class="hp-total-label">Total Cash Needed</span><span class="hp-total-value">${fmt(totalCash)}</span></div>
         </div>
       </div>
-
-      <!-- ══ AFFORDABILITY ══ -->
       <div class="card">
         <div class="card-header"><h2 class="card-title">✅ Can I Afford This?</h2></div>
         <div class="card-body">
-          ${netIncome>0?`
-            <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">${fmt(total)}/mo housing cost vs. ${fmt(netIncome)}/mo net income</p>
-            ${affordRow("Housing only",                0)}
-            ${affordRow("Housing + required bills",   mustPay)}
-            ${affordRow("Housing + bills + subs",     mustPay+subsPay)}
-          `:`<p style="font-size:12px;color:var(--color-text-secondary);margin:0;font-style:italic;">Enter your net income in Inputs below to see affordability.</p>`}
+          ${netIncome>0?`<p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">${fmt(total)}/mo housing cost vs. ${fmt(netIncome)}/mo net income</p>${affordRow("Housing only",0)}${affordRow("Housing + required bills",mustPay)}${affordRow("Housing + bills + subs",mustPay+subsPay)}`:`<p style="font-size:12px;color:var(--color-text-secondary);margin:0;font-style:italic;">Enter your net income in Inputs below to see affordability.</p>`}
         </div>
       </div>
-
-      <!-- ══ INPUTS & ASSUMPTIONS (collapsible) ══ -->
       <div class="card" style="border-color:rgba(106,166,255,0.18);">
         <div class="card-header" style="cursor:pointer;" data-goal-action="hp-toggle-inputs" data-id="${g.id}">
           <h2 class="card-title">⚙️ Inputs &amp; Assumptions</h2>
@@ -2495,133 +2201,42 @@ function renderAnnualView() {
         </div>
         ${hpInputsOpen ? `
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-
-          <!-- My Numbers -->
-          <div>
-            <div class="hp-inputs-group-label">💼 My Numbers</div>
-            <div class="hp-inputs-grid-2">
-              ${dolField("Current House Savings ($)", "hp-currentSavings", current)}
-              ${dolField("Monthly Net Income ($)",    "hp-netIncome",      netIncome||"")}
-            </div>
-          </div>
-
-          <!-- Scenarios -->
-          <div>
-            <div class="hp-inputs-group-label">🏠 Scenarios</div>
-            ${scenarios.map((s,i)=>`
-              <div class="hp-scenario-row">
-                <span class="hp-scenario-label">${["A","B","C"][i]}</span>
-                <div style="flex:2;">
-                  <label class="hp-input-label">Home Price ($)</label>
-                  <input class="goal-input" type="number" step="5000" id="hp-sc-price-${i}" value="${s.homePrice||225000}">
-                </div>
-                <div style="flex:1;">
-                  <label class="hp-input-label">Down %</label>
-                  <input class="goal-input" type="number" step="5" min="3" max="50" id="hp-sc-dpct-${i}" value="${s.downPct||20}">
-                </div>
-              </div>`).join("")}
-          </div>
-
-          <!-- Loan Terms -->
-          <div>
-            <div class="hp-inputs-group-label">🏦 Loan Terms</div>
-            <div class="hp-inputs-grid-3">
-              ${pctField("Rate (%)", "hp-rate", rate)}
-              ${field("Term (yrs)", "hp-years", years, 'step="5" min="10" max="40"')}
-              ${dolField("HOA ($/mo)", "hp-hoa", hoaFee)}
-            </div>
-          </div>
-
-          <!-- Monthly Cost Assumptions -->
-          <div>
-            <div class="hp-inputs-group-label">📅 Monthly Assumptions</div>
-            <div class="hp-inputs-grid-3">
-              ${pctField("Prop Tax %/yr",  "hp-propTax", propTaxRate)}
-              ${pctField("HOI %/yr",       "hp-hoi",     hoiRate)}
-              ${pctField("PMI %/yr",       "hp-pmi",     pmiRate)}
-            </div>
-            <div class="hp-inputs-note">PMI applies only when down payment &lt; 20%</div>
-          </div>
-
-          <!-- Closing Costs -->
-          <div>
-            <div class="hp-inputs-group-label">🔑 Closing Costs</div>
-            <div class="hp-inputs-grid-2">
-              ${pctField("Lender/Title %",     "hp-lenderTitle",  lenderTitleRate)}
-              ${pctField("County Transfer %",  "hp-countyTax",    countyTaxRate)}
-              ${pctField("State Transfer %",   "hp-stateTax",     stateTaxRate)}
-              ${pctField("Mortgage Tax %",     "hp-mortgageTax",  mortgageTaxRate)}
-              ${pctField("Prepaid Escrow %",   "hp-prepaid",      prepaidRate)}
-              ${dolField("Appraisal ($)",      "hp-appraisal",    appraisal)}
-              ${dolField("Inspection ($)",     "hp-inspection",   inspection)}
-              ${dolField("Attorney Fees ($)",  "hp-attorney",     attorneyFees)}
-            </div>
-          </div>
-
-          <!-- Move-In Costs -->
-          <div>
-            <div class="hp-inputs-group-label">📦 Move-In Costs</div>
-            <div class="hp-inputs-grid-2">
-              ${dolField("Moving ($)",         "hp-moving",       movingCost)}
-              ${dolField("Utility Deposits ($)","hp-utilDeposits",utilityDeposits)}
-              ${pctField("Furnishings %",      "hp-furnishings",  furnishingsRate)}
-              ${pctField("Repairs %",          "hp-repairs",      repairsRate)}
-            </div>
-          </div>
-
-          <!-- Payment Reserve -->
-          <div>
-            <div class="hp-inputs-group-label">🛡️ Payment Reserve</div>
-            ${field("Reserve Buffer (months of total payment)", "hp-reserveMonths", reserveMonths, 'step="1" min="1" max="12"')}
-            <div class="hp-inputs-note">Cash cushion to cover payments while settling in</div>
-          </div>
-
-          <button class="btn btn-block" id="hp-saveNumbers" type="button"
-            style="padding:11px;font-size:14px;font-weight:700;">
-            ✓ Save &amp; Recalculate
-          </button>
-        </div>
-        ` : ""}
+          <div><div class="hp-inputs-group-label">💼 My Numbers</div><div class="hp-inputs-grid-2">${dolField("Current House Savings ($)","hp-currentSavings",current)}${dolField("Monthly Net Income ($)","hp-netIncome",netIncome||"")}</div></div>
+          <div><div class="hp-inputs-group-label">🏠 Scenarios</div>${scenarios.map((s,i)=>`<div class="hp-scenario-row"><span class="hp-scenario-label">${["A","B","C"][i]}</span><div style="flex:2;"><label class="hp-input-label">Home Price ($)</label><input class="goal-input" type="number" step="5000" id="hp-sc-price-${i}" value="${s.homePrice||225000}"></div><div style="flex:1;"><label class="hp-input-label">Down %</label><input class="goal-input" type="number" step="5" min="3" max="50" id="hp-sc-dpct-${i}" value="${s.downPct||20}"></div></div>`).join("")}</div>
+          <div><div class="hp-inputs-group-label">🏦 Loan Terms</div><div class="hp-inputs-grid-3">${pctField("Rate (%)","hp-rate",rate)}${field("Term (yrs)","hp-years",years,'step="5" min="10" max="40"')}${dolField("HOA ($/mo)","hp-hoa",hoaFee)}</div></div>
+          <div><div class="hp-inputs-group-label">📅 Monthly Assumptions</div><div class="hp-inputs-grid-3">${pctField("Prop Tax %/yr","hp-propTax",propTaxRate)}${pctField("HOI %/yr","hp-hoi",hoiRate)}${pctField("PMI %/yr","hp-pmi",pmiRate)}</div><div class="hp-inputs-note">PMI applies only when down payment &lt; 20%</div></div>
+          <div><div class="hp-inputs-group-label">🔑 Closing Costs</div><div class="hp-inputs-grid-2">${pctField("Lender/Title %","hp-lenderTitle",lenderTitleRate)}${pctField("County Transfer %","hp-countyTax",countyTaxRate)}${pctField("State Transfer %","hp-stateTax",stateTaxRate)}${pctField("Mortgage Tax %","hp-mortgageTax",mortgageTaxRate)}${pctField("Prepaid Escrow %","hp-prepaid",prepaidRate)}${dolField("Appraisal ($)","hp-appraisal",appraisal)}${dolField("Inspection ($)","hp-inspection",inspection)}${dolField("Attorney Fees ($)","hp-attorney",attorneyFees)}</div></div>
+          <div><div class="hp-inputs-group-label">📦 Move-In Costs</div><div class="hp-inputs-grid-2">${dolField("Moving ($)","hp-moving",movingCost)}${dolField("Utility Deposits ($)","hp-utilDeposits",utilityDeposits)}${pctField("Furnishings %","hp-furnishings",furnishingsRate)}${pctField("Repairs %","hp-repairs",repairsRate)}</div></div>
+          <div><div class="hp-inputs-group-label">🛡️ Payment Reserve</div>${field("Reserve Buffer (months of total payment)","hp-reserveMonths",reserveMonths,'step="1" min="1" max="12"')}<div class="hp-inputs-note">Cash cushion to cover payments while settling in</div></div>
+          <button class="btn btn-block" id="hp-saveNumbers" type="button" style="padding:11px;font-size:14px;font-weight:700;">✓ Save &amp; Recalculate</button>
+        </div>` : ""}
       </div>`;
   }
 
-    // ════════════════════════════════
-  //  GENERIC GOAL TAB
-  // ════════════════════════════════
   function renderGenericTab(g) {
-    const isEditing = editingGoalId === g.id;
-    const pct       = Number(g.targetAmount)?Math.min((Number(g.currentAmount||0)/Number(g.targetAmount))*100,100):0;
-    const color     = pct>=100?"var(--color-success)":pct>=80?"var(--color-warning)":"var(--color-primary)";
-    const proj      = goalProjection(g);
-    const remaining = Math.max(0,Number(g.targetAmount||0)-Number(g.currentAmount||0));
-
+    const isEditing=editingGoalId===g.id;
+    const pct=Number(g.targetAmount)?Math.min((Number(g.currentAmount||0)/Number(g.targetAmount))*100,100):0;
+    const color=pct>=100?"var(--color-success)":pct>=80?"var(--color-warning)":"var(--color-primary)";
+    const proj=goalProjection(g);
+    const remaining=Math.max(0,Number(g.targetAmount||0)-Number(g.currentAmount||0));
     return `
       <div class="card">
         <div class="card-header"><h2 class="card-title">${g.icon||"🎯"} Progress</h2></div>
         <div class="card-body">
           <div style="margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-              <span style="font-weight:700;color:${color};">${fmt(Number(g.currentAmount||0))}</span>
-              <span style="color:var(--color-text-secondary);">${fmt(Number(g.targetAmount||0))} goal</span>
-            </div>
-            <div class="progress-bar-track" style="height:10px;">
-              <div class="progress-bar-fill" style="width:${pct}%;background:${color};border-radius:5px;"></div>
-            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="font-weight:700;color:${color};">${fmt(Number(g.currentAmount||0))}</span><span style="color:var(--color-text-secondary);">${fmt(Number(g.targetAmount||0))} goal</span></div>
+            <div class="progress-bar-track" style="height:10px;"><div class="progress-bar-fill" style="width:${pct}%;background:${color};border-radius:5px;"></div></div>
             <div style="text-align:center;margin-top:8px;font-size:20px;font-weight:800;color:${color};">${pct.toFixed(1)}%</div>
           </div>
           <div class="goal-stats-grid">
             <div class="goal-stat-tile"><div class="goal-stat-label">Remaining</div><div class="goal-stat-value">${fmt(remaining)}</div></div>
             <div class="goal-stat-tile"><div class="goal-stat-label">Monthly Contribution</div><div class="goal-stat-value">${g.monthlyContribution?fmt(g.monthlyContribution):"—"}</div></div>
             <div class="goal-stat-tile"><div class="goal-stat-label">Projected Completion</div><div class="goal-stat-value" style="font-size:13px;line-height:1.2;">${proj.projectedDate}</div></div>
-            <div class="goal-stat-tile">
-              <div class="goal-stat-label">${g.targetDate?"Target Date":"Months to Goal"}</div>
-              <div class="goal-stat-value">${g.targetDate?g.targetDate:(proj.monthsLeft!==null?proj.monthsLeft:"—")}</div>
-            </div>
+            <div class="goal-stat-tile"><div class="goal-stat-label">${g.targetDate?"Target Date":"Months to Goal"}</div><div class="goal-stat-value">${g.targetDate?g.targetDate:(proj.monthsLeft!==null?proj.monthsLeft:"—")}</div></div>
           </div>
           ${g.note?`<div class="goal-note" style="margin-top:12px;">${g.note}</div>`:""}
         </div>
       </div>
-
       ${isEditing?`
       <div class="card">
         <div class="card-header"><h2 class="card-title">✏️ Edit Goal</h2></div>
@@ -2647,9 +2262,6 @@ function renderAnnualView() {
       </div>`}`;
   }
 
-  // ════════════════════════════════
-  //  RENDER ACTIVE TAB CONTENT
-  // ════════════════════════════════
   const ICONS = ["🎯","🛡️","🏖️","🏠","🚗","✈️","💍","🎓","💼","🌟","🏥","📦","🌴","💡","🐾"];
   let tabContent = "";
 
@@ -2664,7 +2276,6 @@ function renderAnnualView() {
     }
   }
 
-  // ── Add goal form ──
   const addGoalSection = `
     <div id="newGoalFormWrap"></div>
     <div class="goal-add-card" id="addGoalBtn">
@@ -2674,7 +2285,6 @@ function renderAnnualView() {
 
   container.innerHTML = tabNav + tabContent + (futureActiveTab==="overview" ? addGoalSection : "");
 
-  // ── Tab switcher ──
   container.querySelectorAll("[data-future-tab]").forEach(el => {
     el.addEventListener("click", () => {
       futureActiveTab = el.dataset.futureTab;
@@ -2683,7 +2293,6 @@ function renderAnnualView() {
     });
   });
 
-  // ── Add goal form logic ──
   const formWrap = document.getElementById("newGoalFormWrap");
   if (formWrap) {
     document.getElementById("addGoalBtn")?.addEventListener("click", () => {
@@ -2692,9 +2301,7 @@ function renderAnnualView() {
         <div class="goal-new-form">
           <div class="goal-new-form-title">New Goal</div>
           <label class="goal-field-label">Pick an icon</label>
-          <div class="goal-icon-picker" id="iconPicker">
-            ${ICONS.map(ic=>`<span class="goal-icon-opt${ic===selectedIcon?" selected":""}" data-icon="${ic}">${ic}</span>`).join("")}
-          </div>
+          <div class="goal-icon-picker" id="iconPicker">${ICONS.map(ic=>`<span class="goal-icon-opt${ic===selectedIcon?" selected":""}" data-icon="${ic}">${ic}</span>`).join("")}</div>
           <div class="goal-edit-grid" style="margin-top:6px;">
             <div class="full"><label class="goal-field-label">Goal Name</label><input class="goal-input" id="newGoalName" type="text" placeholder="e.g. Vacation Fund"></div>
             <div><label class="goal-field-label">Current Saved ($)</label><input class="goal-input" id="newGoalCurrent" type="number" step="0.01" placeholder="0"></div>
@@ -2709,8 +2316,7 @@ function renderAnnualView() {
           </div>
         </div>`;
       document.getElementById("iconPicker").addEventListener("click", e => {
-        const opt = e.target.closest("[data-icon]");
-        if (!opt) return;
+        const opt = e.target.closest("[data-icon]"); if (!opt) return;
         selectedIcon = opt.dataset.icon;
         document.querySelectorAll(".goal-icon-opt").forEach(el=>el.classList.toggle("selected",el.dataset.icon===selectedIcon));
       });
@@ -2720,7 +2326,7 @@ function renderAnnualView() {
         if (!name){alert("Please enter a goal name.");return;}
         const newGoal={id:uid(),type:"generic",name,icon:selectedIcon,
           currentAmount:Number(document.getElementById("newGoalCurrent").value||0),
-          targetAmount: Number(document.getElementById("newGoalTarget").value||0),
+          targetAmount:Number(document.getElementById("newGoalTarget").value||0),
           monthlyContribution:Number(document.getElementById("newGoalMonthly").value||0),
           targetDate:document.getElementById("newGoalDate").value||"",
           note:document.getElementById("newGoalNote").value.trim()};
@@ -2731,46 +2337,22 @@ function renderAnnualView() {
     });
   }
 
-  // ── Home: full inputs save ──
   document.getElementById("hp-saveNumbers")?.addEventListener("click", () => {
-    const g = plannerState.goals.find(g=>g.id===futureActiveTab && g.type==="home")
-           || plannerState.goals.find(g=>g.type==="home");
+    const g = plannerState.goals.find(g=>g.id===futureActiveTab && g.type==="home") || plannerState.goals.find(g=>g.type==="home");
     if (!g) return;
     const v = id => Number(document.getElementById(id)?.value || 0);
-    g.currentSavings    = v("hp-currentSavings");
-    g.monthlyNetIncome  = v("hp-netIncome");
-    g.interestRate      = v("hp-rate")         || 6.25;
-    g.loanTermYears     = v("hp-years")        || 30;
-    g.hoaFee            = v("hp-hoa");
-    g.propTaxRate       = v("hp-propTax")      || 1.7;
-    g.hoiRate           = v("hp-hoi")          || 0.5;
-    g.pmiRate           = v("hp-pmi")          || 0.75;
-    g.lenderTitleRate   = v("hp-lenderTitle")  || 2.0;
-    g.appraisal         = v("hp-appraisal");
-    g.inspection        = v("hp-inspection");
-    g.countyTaxRate     = v("hp-countyTax");
-    g.stateTaxRate      = v("hp-stateTax");
-    g.mortgageTaxRate   = v("hp-mortgageTax");
-    g.prepaidEscrowRate = v("hp-prepaid");
-    g.attorneyFees      = v("hp-attorney");
-    g.movingCost        = v("hp-moving");
-    g.utilityDeposits   = v("hp-utilDeposits");
-    g.furnishingsRate   = v("hp-furnishings");
-    g.repairsRate       = v("hp-repairs");
-    g.reserveMonths     = v("hp-reserveMonths") || 3;
-    // Save scenario prices/down from input fields
-    if (g.scenarios) {
-      g.scenarios.forEach((s,i) => {
-        const p = document.getElementById("hp-sc-price-"+i);
-        const d = document.getElementById("hp-sc-dpct-"+i);
-        if (p) s.homePrice = Number(p.value||0);
-        if (d) s.downPct   = Number(d.value||20);
-      });
-    }
+    g.currentSavings=v("hp-currentSavings"); g.monthlyNetIncome=v("hp-netIncome");
+    g.interestRate=v("hp-rate")||6.25; g.loanTermYears=v("hp-years")||30; g.hoaFee=v("hp-hoa");
+    g.propTaxRate=v("hp-propTax")||1.7; g.hoiRate=v("hp-hoi")||0.5; g.pmiRate=v("hp-pmi")||0.75;
+    g.lenderTitleRate=v("hp-lenderTitle")||2.0; g.appraisal=v("hp-appraisal"); g.inspection=v("hp-inspection");
+    g.countyTaxRate=v("hp-countyTax"); g.stateTaxRate=v("hp-stateTax"); g.mortgageTaxRate=v("hp-mortgageTax");
+    g.prepaidEscrowRate=v("hp-prepaid"); g.attorneyFees=v("hp-attorney"); g.movingCost=v("hp-moving");
+    g.utilityDeposits=v("hp-utilDeposits"); g.furnishingsRate=v("hp-furnishings"); g.repairsRate=v("hp-repairs");
+    g.reserveMonths=v("hp-reserveMonths")||3;
+    if (g.scenarios) { g.scenarios.forEach((s,i)=>{ const p=document.getElementById("hp-sc-price-"+i), d=document.getElementById("hp-sc-dpct-"+i); if(p)s.homePrice=Number(p.value||0); if(d)s.downPct=Number(d.value||20); }); }
     saveState(); renderAnnualView();
   });
 
-  // ── EF month selectors ──
   document.getElementById("efBaselineOpts")?.addEventListener("click",e=>{
     const opt=e.target.closest("[data-ef-baseline]"); if(!opt)return;
     const v=opt.dataset.efBaseline;
@@ -2788,52 +2370,37 @@ function renderAnnualView() {
 function handleFutureClick(e) {
   const btn=e.target.closest("[data-goal-action]"); if(!btn)return;
   const action=btn.dataset.goalAction, id=btn.dataset.id;
-
-  if (action==="home-scenario")      { activeHomeScenario=Number(btn.dataset.sc||0); renderAnnualView(); return; }
-  if (action==="hp-toggle-inputs")   { hpInputsOpen=!hpInputsOpen; renderAnnualView(); return; }
-  if (action==="home-down") {
-    const g=plannerState.goals.find(g=>g.id===id);
-    if(g&&g.scenarios){g.scenarios[activeHomeScenario].downPct=Number(btn.dataset.pct);saveState();renderAnnualView();}
-    return;
-  }
-  if (action==="home-settings-toggle") {
-    editingGoalId = editingGoalId===id+"-settings" ? null : id+"-settings";
-    renderAnnualView(); return;
-  }
-  if (action==="cancel-settings") { editingGoalId=null; renderAnnualView(); return; }
+  if (action==="home-scenario")    { activeHomeScenario=Number(btn.dataset.sc||0); renderAnnualView(); return; }
+  if (action==="hp-toggle-inputs") { hpInputsOpen=!hpInputsOpen; renderAnnualView(); return; }
   if (action==="edit")        { editingGoalId=id;   renderAnnualView(); return; }
   if (action==="cancel-edit") { editingGoalId=null;  renderAnnualView(); return; }
-
   if (action==="save-ef") {
     const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
-    const card=document.querySelector(`.goal-card[data-goal-id="${id}"]`)||document.getElementById("annualView");
-    g.currentAmount  = Number(card.querySelector("[data-edit-field='currentAmount']")?.value||0);
+    const av=document.getElementById("annualView");
+    g.currentAmount  = Number(av.querySelector("[data-edit-field='currentAmount']")?.value||0);
     g.baselineMonths = Number(document.getElementById("efBaselineVal")?.value||3);
     g.goalMonths     = Number(document.getElementById("efGoalVal")?.value||6);
     editingGoalId=null; saveState(); renderAnnualView(); return;
   }
-  // save-home now handled by hp-saveNumbers listener
   if (action==="save-edit") {
     const av=document.getElementById("annualView");
     const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
-    g.currentAmount       = Number(av.querySelector("[data-edit-field='currentAmount']")?.value||0);
-    g.targetAmount        = Number(av.querySelector("[data-edit-field='targetAmount']")?.value||0);
-    g.monthlyContribution = Number(av.querySelector("[data-edit-field='monthlyContribution']")?.value||0);
-    g.targetDate          = av.querySelector("[data-edit-field='targetDate']")?.value||"";
-    g.name                = av.querySelector("[data-edit-field='name']")?.value.trim()||g.name;
-    g.note                = av.querySelector("[data-edit-field='note']")?.value.trim()||"";
+    g.currentAmount=Number(av.querySelector("[data-edit-field='currentAmount']")?.value||0);
+    g.targetAmount=Number(av.querySelector("[data-edit-field='targetAmount']")?.value||0);
+    g.monthlyContribution=Number(av.querySelector("[data-edit-field='monthlyContribution']")?.value||0);
+    g.targetDate=av.querySelector("[data-edit-field='targetDate']")?.value||"";
+    g.name=av.querySelector("[data-edit-field='name']")?.value.trim()||g.name;
+    g.note=av.querySelector("[data-edit-field='note']")?.value.trim()||"";
     editingGoalId=null; saveState(); renderAnnualView(); return;
   }
   if (action==="delete") {
     if(!confirm("Delete this goal?"))return;
     plannerState.goals=plannerState.goals.filter(g=>g.id!==id);
-    futureActiveTab="overview";
-    saveState(); renderAnnualView(); return;
+    futureActiveTab="overview"; saveState(); renderAnnualView(); return;
   }
 }
 
-
-
+// ─────────────────────────────────────────
 //  ADMIN VIEW
 // ─────────────────────────────────────────
 
@@ -2844,36 +2411,59 @@ function renderAdminView() {
   const invsts = appSettings.recurringInvestments    || [];
   const disc   = appSettings.discretionaryCategories || [];
 
+  // Build storage layer badges
+  const layerBadges = `
+    <div class="storage-layer-row">
+      <div class="storage-layer-badge ${opfsAvailable ? "slb-active" : "slb-inactive"}">
+        <span class="slb-dot"></span> OPFS ${opfsAvailable ? "✓" : "(unavailable)"}
+      </div>
+      <div class="storage-layer-badge slb-active">
+        <span class="slb-dot"></span> IndexedDB ✓
+      </div>
+      <div class="storage-layer-badge slb-active">
+        <span class="slb-dot"></span> localStorage ✓
+      </div>
+    </div>`;
+
   container.innerHTML = `
 
-    <!-- ── Card 1: Data Management ── -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">💾 Data Management</h2></div>
       <div class="card-body">
 
-        <!-- Storage mode tile -->
         ${IS_STANDALONE ? `
-          <div class="storage-mode-tile smt-pwa">
-            <span class="smt-icon">🏠</span>
+          <div class="storage-mode-tile ${opfsAvailable ? "smt-opfs" : "smt-pwa"}">
+            <span class="smt-icon">${opfsAvailable ? "🔒" : "🏠"}</span>
             <div class="smt-body">
-              <div class="smt-title">Installed App (Protected)</div>
-              <div class="smt-sub">Your data is stored inside the installed app — not in Safari's memory. Protected from the 7-day inactivity wipe, but a full Safari reset or low device storage can still delete it. Export a backup periodically.</div>
+              <div class="smt-title">${opfsAvailable ? "OPFS + Installed App (Best Protection)" : "Installed App (Protected)"}</div>
+              <div class="smt-sub">${opfsAvailable
+                ? "Your data is written to the Origin Private File System — the most durable local storage available on iOS. Data is additionally mirrored to IndexedDB and localStorage as fallbacks."
+                : "Your data is stored inside the installed app — protected from the 7-day inactivity wipe. Export a backup periodically as a safety net."}</div>
             </div>
           </div>
         ` : `
-          <div class="storage-mode-tile smt-browser">
-            <span class="smt-icon">🌐</span>
+          <div class="storage-mode-tile ${opfsAvailable ? "smt-opfs" : "smt-browser"}">
+            <span class="smt-icon">${opfsAvailable ? "🔒" : "🌐"}</span>
             <div class="smt-body">
-              <div class="smt-title">Safari Storage (At Risk)</div>
-              <div class="smt-sub">Your data is stored in Safari's temporary memory. iOS can delete it if you haven't opened the app in 7+ days, clear your browsing history, or run low on device storage.</div>
+              <div class="smt-title">${opfsAvailable ? "OPFS Active (Good Protection)" : "Safari Storage (At Risk)"}</div>
+              <div class="smt-sub">${opfsAvailable
+                ? "Your data is in the Origin Private File System — more durable than standard Safari storage, but still subject to iOS eviction if your device runs critically low on storage. Install to Home Screen + regular exports for maximum safety."
+                : "Your data is in Safari's temporary memory. iOS can delete it if you haven't opened the app in 7+ days, clear browsing history, or run low on device storage."}</div>
             </div>
           </div>
-          <div class="install-steps">
-            <strong>Protect your data →</strong> tap <strong>Share ⬆</strong> in Safari, then <strong>"Add to Home Screen"</strong>. Free, takes 10 seconds, and removes the 7-day data timer.
-          </div>
+          ${!opfsAvailable ? `<div class="install-steps"><strong>Protect your data →</strong> tap <strong>Share ⬆</strong> in Safari, then <strong>"Add to Home Screen"</strong>. Free, takes 10 seconds, and removes the 7-day data timer.</div>` : ""}
         `}
 
-        <!-- Backup status -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);margin-bottom:6px;">Active Storage Layers</div>
+          ${layerBadges}
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:5px;line-height:1.4;">
+            ${opfsAvailable
+              ? "Data is written to all three layers on every save. If one layer fails or is evicted, the others remain."
+              : "OPFS requires iOS 16.4+. Install the app to Home Screen to maximize storage durability."}
+          </div>
+        </div>
+
         <div class="backup-status-row">
           <span class="backup-status-label">Last backed up</span>
           <span class="backup-status-value ${lastExportedAt ? "backed" : "not-backed"}">
@@ -2883,13 +2473,17 @@ function renderAdminView() {
           </span>
         </div>
 
-        <button class="btn" id="adminSnapshotBtn" type="button" style="width:100%;margin-bottom:10px;">💾 Back Up Now</button>
+        <button class="btn" id="adminSnapshotBtn" type="button" style="width:100%;margin-bottom:10px;">📤 Export Backup</button>
+        <p style="font-size:11px;color:var(--color-text-secondary);margin:-4px 0 12px;line-height:1.5;text-align:center;">
+          Opens the share sheet — save to Files or iCloud.<br>
+          Each export creates a new dated file (e.g. <em>finance-backup-2026-03-09.json</em>).<br>
+          You can safely delete old backups from the Files app.
+        </p>
         <button class="btn btn-ghost" id="adminImportBtn" type="button" style="width:100%;font-size:13px;">📥 Restore from Backup File</button>
 
       </div>
     </div>
 
-    <!-- ── Card 2: Edit Budget ── -->
     <div class="card">
       <div class="card-header"><h2 class="card-title">✏️ Edit Budget</h2></div>
       <div class="card-body">
@@ -2899,7 +2493,6 @@ function renderAdminView() {
         ${renderAdminBudgetSection("disc",   "🛍️ Discretionary Categories", disc,   true)}
       </div>
     </div>
-
   `;
 }
 
@@ -2921,16 +2514,13 @@ function renderAdminBudgetSection(section, title, items, isDisc) {
       </div>
       ${collapsed ? "" : `
         <div class="admin-section-body">
-          ${isDisc ? `<p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 8px;line-height:1.5;">
-            These categories appear in the Log tab dropdown. Setting a budget enables progress tracking.</p>` : ""}
+          ${isDisc ? `<p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 8px;line-height:1.5;">These categories appear in the Log tab dropdown. Setting a budget enables progress tracking.</p>` : ""}
           ${items.length === 0
             ? `<p class="empty-bucket" style="padding:8px 0 4px;">No items yet — add one below.</p>`
             : items.map(item => renderAdminBudgetItemRow(section, item, isDisc)).join("")}
           <div class="admin-add-row" data-section="${section}">
-            <input class="admin-input admin-add-name" type="text"
-              placeholder="${isDisc ? "Category name" : "Item name"}" style="flex:1;min-width:120px;">
-            <input class="admin-input admin-add-budget" type="number"
-              placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
+            <input class="admin-input admin-add-name" type="text" placeholder="${isDisc ? "Category name" : "Item name"}" style="flex:1;min-width:120px;">
+            <input class="admin-input admin-add-budget" type="number" placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
             <button class="admin-btn admin-btn-success" data-action="add" data-section="${section}">+ Add</button>
           </div>
         </div>`}
@@ -2942,10 +2532,8 @@ function renderAdminBudgetItemRow(section, item, isDisc) {
   if (editing) {
     return `
       <div class="admin-item-edit-row" data-id="${item.id}">
-        <input class="admin-input admin-edit-name" type="text" value="${item.name}"
-          placeholder="Name" style="flex:1;min-width:120px;">
-        <input class="admin-input admin-edit-budget" type="number" value="${item.budgetAmount || ""}"
-          placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
+        <input class="admin-input admin-edit-name" type="text" value="${item.name}" placeholder="Name" style="flex:1;min-width:120px;">
+        <input class="admin-input admin-edit-budget" type="number" value="${item.budgetAmount || ""}" placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
         <button class="admin-btn admin-btn-success" data-action="save" data-section="${section}" data-id="${item.id}">✓ Save</button>
         <button class="admin-btn" data-action="cancel">✕</button>
       </div>`;
@@ -2954,59 +2542,49 @@ function renderAdminBudgetItemRow(section, item, isDisc) {
   return `
     <div class="admin-item-row">
       <div class="admin-item-name">${item.name}</div>
-      <div class="admin-item-budget"
-        style="${!item.budgetAmount && isDisc ? "color:var(--color-text-secondary);font-weight:400;" : ""}">
-        ${budgetDisplay}
-      </div>
+      <div class="admin-item-budget" style="${!item.budgetAmount && isDisc ? "color:var(--color-text-secondary);font-weight:400;" : ""}">${budgetDisplay}</div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="admin-btn"                 data-action="edit"   data-section="${section}" data-id="${item.id}">✏️</button>
-        <button class="admin-btn admin-btn-danger" data-action="delete" data-section="${section}" data-id="${item.id}">🗑️</button>
+        <button class="admin-btn"                  data-action="edit"   data-section="${section}" data-id="${item.id}">✏️</button>
+        <button class="admin-btn admin-btn-danger"  data-action="delete" data-section="${section}" data-id="${item.id}">🗑️</button>
       </div>
     </div>`;
 }
 
 function handleAdminClick(e) {
   const t = e.target;
-
   const toggle = t.closest("[data-toggle]");
-  if (toggle) {
-    const s = toggle.dataset.toggle;
-    collapsedAdminSections.has(s) ? collapsedAdminSections.delete(s) : collapsedAdminSections.add(s);
-    renderAdminView(); return;
-  }
+  if (toggle) { const s=toggle.dataset.toggle; collapsedAdminSections.has(s)?collapsedAdminSections.delete(s):collapsedAdminSections.add(s); renderAdminView(); return; }
   const editBtn = t.closest("[data-action='edit']");
-  if (editBtn) { editingBudgetItem = { section: editBtn.dataset.section, id: editBtn.dataset.id }; renderAdminView(); return; }
+  if (editBtn) { editingBudgetItem={section:editBtn.dataset.section,id:editBtn.dataset.id}; renderAdminView(); return; }
   const cancelBtn = t.closest("[data-action='cancel']");
-  if (cancelBtn) { editingBudgetItem = null; renderAdminView(); return; }
+  if (cancelBtn) { editingBudgetItem=null; renderAdminView(); return; }
   const saveBtn = t.closest("[data-action='save']");
   if (saveBtn) {
-    const { section, id } = saveBtn.dataset;
-    const row = document.querySelector(`.admin-item-edit-row[data-id="${id}"]`);
-    if (!row) return;
-    const name   = row.querySelector(".admin-edit-name").value.trim();
-    const budget = Number(row.querySelector(".admin-edit-budget").value || 0);
-    if (!name) { alert("Please enter a name."); return; }
-    const item = getSectionArray(section).find(i => i.id === id);
-    if (item) { item.name = name; item.budgetAmount = budget; }
-    editingBudgetItem = null; saveState(); renderAdminView(); return;
+    const {section,id}=saveBtn.dataset;
+    const row=document.querySelector(`.admin-item-edit-row[data-id="${id}"]`); if(!row)return;
+    const name=row.querySelector(".admin-edit-name").value.trim();
+    const budget=Number(row.querySelector(".admin-edit-budget").value||0);
+    if(!name){alert("Please enter a name.");return;}
+    const item=getSectionArray(section).find(i=>i.id===id);
+    if(item){item.name=name;item.budgetAmount=budget;}
+    editingBudgetItem=null; saveState(); renderAdminView(); return;
   }
   const deleteBtn = t.closest("[data-action='delete']");
   if (deleteBtn) {
-    const { section, id } = deleteBtn.dataset;
-    if (!confirm("Delete this item?")) return;
-    const arr = getSectionArray(section), idx = arr.findIndex(i => i.id === id);
-    if (idx !== -1) arr.splice(idx, 1);
+    const {section,id}=deleteBtn.dataset;
+    if(!confirm("Delete this item?"))return;
+    const arr=getSectionArray(section), idx=arr.findIndex(i=>i.id===id);
+    if(idx!==-1)arr.splice(idx,1);
     saveState(); renderAdminView(); return;
   }
   const addBtn = t.closest("[data-action='add']");
   if (addBtn) {
-    const section = addBtn.dataset.section;
-    const row = document.querySelector(`.admin-add-row[data-section="${section}"]`);
-    if (!row) return;
-    const name   = row.querySelector(".admin-add-name").value.trim();
-    const budget = Number(row.querySelector(".admin-add-budget").value || 0);
-    if (!name) { alert("Please enter a name."); return; }
-    getSectionArray(section).push({ id: uid(), name, budgetAmount: budget });
+    const section=addBtn.dataset.section;
+    const row=document.querySelector(`.admin-add-row[data-section="${section}"]`); if(!row)return;
+    const name=row.querySelector(".admin-add-name").value.trim();
+    const budget=Number(row.querySelector(".admin-add-budget").value||0);
+    if(!name){alert("Please enter a name.");return;}
+    getSectionArray(section).push({id:uid(),name,budgetAmount:budget});
     saveState(); renderAdminView(); return;
   }
 }
@@ -3020,7 +2598,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.addEventListener("click", () => switchView(btn.dataset.view))
   );
 
-
   const imp = document.getElementById("importFileInput");
   imp.addEventListener("change", e => {
     const f = e.target.files?.[0];
@@ -3030,20 +2607,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("adminView").addEventListener("click", e => {
     const t = e.target;
-    // ── Data Management buttons ──
-        if (t.id === "adminSnapshotBtn") { handleBackupButtonClick(); return; }
+    if (t.id === "adminSnapshotBtn") { handleBackupButtonClick(); return; }
     if (t.id === "adminImportBtn")   { document.getElementById("importFileInput").click(); return; }
     handleAdminClick(e);
   });
   document.getElementById("annualView").addEventListener("click", handleFutureClick);
 
   await loadState();
-
-  // Persistent iOS bar handles storage warnings (shown on load via loadState)
 });
 </script>
 </body>
-</html>      </div>
-    </div>
-
-    
+</html>
