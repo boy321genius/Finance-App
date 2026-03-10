@@ -681,6 +681,7 @@ let activeView     = "log";
 let activeMonthKey = null;
 let saveTimeout    = null;
 let activeFileName = "finance-tracker-backup.json";
+let customBackupName = "finance-backup";
 let editingBudgetItem      = null;
 let collapsedAdminSections = new Set(["bills","subs","invsts","disc"]);
 
@@ -1304,26 +1305,54 @@ async function openExistingBackup() {
 }
 
 async function exportSnapshot() {
-  const dateStr       = new Date().toISOString().slice(0, 10);
-  const suggestedName = `finance-backup.json`;
+  // Read custom name from input if available, fall back to state variable
+  const nameInput = document.getElementById("backupFileNameInput");
+  if (nameInput) {
+    const trimmed = nameInput.value.trim();
+    if (trimmed) customBackupName = trimmed;
+  }
+  const baseName      = (customBackupName || "finance-backup").replace(/\.json$/i, "");
+  const suggestedName = `${baseName}.json`;
   const data          = JSON.stringify(buildStateObject(), null, 2);
 
+  async function onExportSuccess() {
+    lastExportedAt = new Date();
+    try { await idbSet(IDB_PREFS, "lastExportedAt", lastExportedAt.toISOString()); } catch(e) {}
+    setFileStatus("ios-backed");
+    updatePersistentIOSBar(true);
+    dismissBanner("backup-nudge-banner");
+    setTimeout(() => {
+      setFileStatus(IS_STANDALONE ? "ios-pwa" : "ios-browser");
+      updatePersistentIOSBar(false);
+    }, 5000);
+    if (activeView === "admin") renderAdminView();
+  }
+
+  // ── 1. Try File System Access API (opens native save dialog on supported browsers) ──
+  if (typeof window.showSaveFilePicker === "function") {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: "JSON Backup", accept: { "application/json": [".json"] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(data);
+      await writable.close();
+      await onExportSuccess();
+      return;
+    } catch(e) {
+      if (e.name === "AbortError") return;
+      // Fall through to next method
+    }
+  }
+
+  // ── 2. iOS share sheet (opens Files app / iCloud on iOS) ──
   if (IS_IOS && HAS_SHARE) {
     try {
       const blob = new File([data], suggestedName, { type: "application/json" });
       if (navigator.canShare({ files: [blob] })) {
         await navigator.share({ files: [blob], title: "Finance Tracker Backup" });
-        lastExportedAt = new Date();
-        try { await idbSet(IDB_PREFS, "lastExportedAt", lastExportedAt.toISOString()); } catch(e) {}
-        setFileStatus("ios-backed");
-        updatePersistentIOSBar(true);
-        // Remove nudge if it was showing
-        dismissBanner("backup-nudge-banner");
-        setTimeout(() => {
-          setFileStatus(IS_STANDALONE ? "ios-pwa" : "ios-browser");
-          updatePersistentIOSBar(false);
-        }, 5000);
-        if (activeView === "admin") renderAdminView();
+        await onExportSuccess();
         return;
       }
     } catch(e) {
@@ -1333,12 +1362,13 @@ async function exportSnapshot() {
     }
   }
 
-  // Fallback: download
+  // ── 3. Fallback: anchor download ──
   const a = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([data], { type: "application/json" })),
     download: suggestedName
   });
   a.click(); URL.revokeObjectURL(a.href);
+  await onExportSuccess();
 }
 
 function importStateFromFile(file) {
@@ -2473,10 +2503,17 @@ function renderAdminView() {
           </span>
         </div>
 
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);display:block;margin-bottom:6px;">Backup File Name</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input id="backupFileNameInput" type="text" class="admin-input" placeholder="finance-backup" value="${customBackupName}" style="flex:1;min-width:0;">
+            <span style="font-size:12px;color:var(--color-text-secondary);flex-shrink:0;font-weight:600;">.json</span>
+          </div>
+        </div>
+
         <button class="btn" id="adminSnapshotBtn" type="button" style="width:100%;margin-bottom:10px;">📤 Export Backup</button>
         <p style="font-size:11px;color:var(--color-text-secondary);margin:-4px 0 12px;line-height:1.5;text-align:center;">
-          Opens the share sheet — save to Files or iCloud.<br>
-
+          Opens the Files app — save anywhere you like.<br>
           You can safely delete old backups from the Files app.
         </p>
         <button class="btn btn-ghost" id="adminImportBtn" type="button" style="width:100%;font-size:13px;">📥 Restore from Backup File</button>
@@ -2607,7 +2644,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("adminView").addEventListener("click", e => {
     const t = e.target;
-    if (t.id === "adminSnapshotBtn") { handleBackupButtonClick(); return; }
+    if (t.id === "adminSnapshotBtn") {
+      const nameInput = document.getElementById("backupFileNameInput");
+      if (nameInput) { const v = nameInput.value.trim(); if (v) customBackupName = v; }
+      handleBackupButtonClick();
+      return;
+    }
     if (t.id === "adminImportBtn")   { document.getElementById("importFileInput").click(); return; }
     handleAdminClick(e);
   });
