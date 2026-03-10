@@ -572,6 +572,67 @@
     .overview-row-arrow { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
     .overview-mini-bar  { margin-top: 6px; }
 
+    /* ── Back to Top button ── */
+    .back-to-top {
+      position: fixed;
+      bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+      right: 16px;
+      z-index: 15;
+      background: rgba(106,166,255,0.18);
+      border: 1px solid rgba(106,166,255,0.35);
+      color: var(--color-primary);
+      border-radius: 50%;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .22s ease, transform .22s ease, background .15s;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .back-to-top:hover  { background: rgba(106,166,255,0.3); }
+    .back-to-top:active { background: rgba(106,166,255,0.4); transform: scale(0.93); }
+
+    /* ── Split / Annual bill visualizations ── */
+    .split-bar-wrap { position: relative; width: 100%; height: 6px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
+    .split-bar-your { position: absolute; left: 0; top: 0; height: 100%; border-radius: 99px 0 0 99px; }
+    .split-bar-partner { position: absolute; top: 0; height: 100%; background: rgba(148,163,184,0.18); border-radius: 0 99px 99px 0; }
+    .split-bar-wrap.no-partner .split-bar-your { border-radius: 99px; }
+    .bill-meta-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+    .bill-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+      border: 1px solid; white-space: nowrap; line-height: 1.4;
+    }
+    .badge-partner  { background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.2); color: var(--color-text-secondary); }
+    .badge-annual-ok{ background: rgba(74,222,128,0.1);   border-color: rgba(74,222,128,0.3);  color: var(--color-success); }
+    .badge-annual-pending { background: rgba(106,166,255,0.08); border-color: rgba(106,166,255,0.2); color: var(--color-primary); }
+
+    /* ── Admin edit form expansion ── */
+    .admin-edit-block { padding: 10px 0 8px; border-bottom: 1px solid rgba(148,163,184,0.07); }
+    .admin-edit-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .admin-edit-grid .full { grid-column: 1/-1; }
+    .admin-edit-label { font-size: 11px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; display: block; }
+    .admin-toggle-row {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--color-border);
+      margin-bottom: 6px; cursor: pointer; user-select: none;
+    }
+    .admin-toggle-row input[type=checkbox] { accent-color: var(--color-primary); width: 15px; height: 15px; cursor: pointer; }
+    .admin-toggle-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); flex: 1; }
+    .admin-toggle-row.active { border-color: rgba(106,166,255,0.3); background: rgba(106,166,255,0.05); }
+    .admin-toggle-row.active .admin-toggle-label { color: var(--color-primary); }
+    .admin-sub-fields { padding: 6px 4px 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+    .admin-sub-fields .full { grid-column: 1/-1; }
+    .admin-computed-note { font-size: 11px; color: var(--color-text-secondary); font-style: italic; padding: 2px 2px 6px; }
+
     /* ── Bottom nav ── */
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border); display: flex; justify-content: space-around; padding: 6px 0 calc(6px + env(safe-area-inset-bottom,0)); z-index: 20; }
     .nav-btn { flex: 1; background: none; border: none; color: #64748b; padding: 4px 4px 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: 500; gap: 4px; }
@@ -603,6 +664,8 @@
     <section id="adminView"   class="view"></section>
     <input id="importFileInput" type="file" accept="application/json" style="display:none;" />
   </main>
+
+  <button class="back-to-top" id="backToTopBtn" aria-label="Back to top" title="Back to top">↑</button>
 
   <nav class="bottom-nav">
     <button class="nav-btn active" data-view="log">    <div class="nav-icon">➕</div><span>Log</span></button>
@@ -691,6 +754,8 @@ let txFilterCat    = "";
 let txSortOrder    = "newest";
 let monthlyViewKey  = null;
 let monthlyViewMode = "monthly";
+let budgetViewKey   = null;
+let budgetViewMode  = "monthly";
 
 const STORAGE_KEY = "financeTrackerState_v1";
 
@@ -773,6 +838,38 @@ function computeActuals(transactions) {
   return t;
 }
 
+// Returns the portion of rawActual that counts against YOUR budget (applies split ratio)
+function getEffectiveActual(item, rawActual) {
+  if (!item || typeof item === "string") return rawActual;
+  if (!item.splitEnabled || !Number(item.splitFullAmount)) return rawActual;
+  const yourShare  = Number(item.budgetAmount || 0);
+  const fullAmount = Number(item.splitFullAmount);
+  if (!fullAmount || !yourShare) return rawActual;
+  return rawActual * (yourShare / fullAmount);
+}
+
+// Returns true if the annual charge has been posted (≥75% of annualTotal spent this year)
+function isAnnualPaid(item, yearTxs) {
+  if (!item || !item.annualEnabled) return false;
+  const annualTotal = Number(item.annualTotal) || Number(item.budgetAmount || 0) * 12;
+  if (!annualTotal) return false;
+  const yearTotal = (yearTxs || [])
+    .filter(t => t.category === item.name)
+    .reduce((s, t) => s + Number(t.amount || 0), 0);
+  return yearTotal >= annualTotal * 0.75;
+}
+
+// Applies split adjustments to a rawActuals map for all items in allItems
+function computeEffectiveActuals(rawActuals, allItems) {
+  const result = Object.assign({}, rawActuals);
+  (allItems || []).forEach(item => {
+    if (item.splitEnabled && Number(item.splitFullAmount) > 0) {
+      result[item.name] = getEffectiveActual(item, rawActuals[item.name] || 0);
+    }
+  });
+  return result;
+}
+
 function getSectionArray(section) {
   switch (section) {
     case "bills":  return appSettings.recurringBills;
@@ -799,22 +896,108 @@ function buildCategoryOptions(selectedValue) {
     </optgroup>`).join("");
 }
 
-function renderBucketItem(name, actual, budget) {
-  const pct   = budget ? Math.min((actual / budget) * 100, 100) : 0;
-  const cls   = progressClass(actual, budget);
-  const color = progressColor(cls);
+// item = full item object (bills/subs/invsts) OR a plain string name (disc)
+// rawActual = what was logged, budget = already-multiplied ceiling, yearTxs = for annual detection
+function renderBucketItem(item, rawActual, budget, yearTxs) {
+  // Backward-compat: if item is a string (discretionary), simple render
+  if (typeof item === "string") {
+    const pct   = budget ? Math.min((rawActual / budget) * 100, 100) : 0;
+    const cls   = progressClass(rawActual, budget);
+    const color = progressColor(cls);
+    return `
+      <div class="bucket-item">
+        <div class="bucket-item-row">
+          <div class="bucket-item-name">${item}</div>
+          <div class="bucket-item-amounts">
+            <span class="bucket-item-actual" style="color:${color};">${fmt(rawActual)}</span>
+            <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
+          </div>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
+        </div>
+      </div>`;
+  }
+
+  const name           = item.name;
+  const isSplit        = !!(item.splitEnabled && Number(item.splitFullAmount) > 0);
+  const isAnnual       = !!item.annualEnabled;
+  const annualTotal    = isAnnual ? (Number(item.annualTotal) || Number(item.budgetAmount || 0) * 12) : 0;
+  const annualPaid     = isAnnual && isAnnualPaid(item, yearTxs);
+  const effectiveActual = getEffectiveActual(item, rawActual);
+
+  // Progress math: use effective actual vs budget; if annual paid → full green
+  let pct, cls, color;
+  if (annualPaid) {
+    pct = 100; cls = "under"; color = "var(--color-success)";
+  } else {
+    pct   = budget ? Math.min((effectiveActual / budget) * 100, 100) : 0;
+    cls   = progressClass(effectiveActual, budget);
+    color = progressColor(cls);
+  }
+
+  // Split bar geometry
+  let barHTML;
+  if (isSplit) {
+    const fullAmount   = Number(item.splitFullAmount);
+    const yourShare    = Number(item.budgetAmount || 0);
+    const partnerShare = Math.max(0, fullAmount - yourShare);
+    const yourPct      = (yourShare / fullAmount) * 100;
+    const partnerPct   = (partnerShare / fullAmount) * 100;
+    // Within your portion, how much have you actually filled?
+    const filledYourPct = annualPaid ? yourPct : Math.min((effectiveActual / yourShare) * yourPct, yourPct);
+    const fillCls = annualPaid ? "under" : cls;
+    barHTML = `
+      <div class="split-bar-wrap${partnerShare === 0 ? " no-partner" : ""}">
+        <div class="split-bar-your progress-bar-fill ${fillCls}" style="width:${filledYourPct}%;"></div>
+        <div class="split-bar-partner" style="left:${yourPct}%;width:${partnerPct}%;"></div>
+      </div>`;
+  } else {
+    barHTML = `
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
+      </div>`;
+  }
+
+  // Amount display
+  let amountRight;
+  if (isSplit) {
+    const partnerShare = Math.max(0, Number(item.splitFullAmount) - Number(item.budgetAmount || 0));
+    amountRight = `
+      <div class="bucket-item-amounts" style="text-align:right;">
+        <span class="bucket-item-actual" style="color:${color};">${fmt(effectiveActual)}</span>
+        <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:1px;">+ ${fmt(partnerShare)} partner</div>
+      </div>`;
+  } else {
+    amountRight = `
+      <div class="bucket-item-amounts">
+        <span class="bucket-item-actual" style="color:${color};">${fmt(effectiveActual)}</span>
+        <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
+      </div>`;
+  }
+
+  // Badges
+  const badges = [];
+  if (annualPaid) {
+    badges.push(`<span class="bill-badge badge-annual-ok">✓ Paid for the year</span>`);
+  } else if (isAnnual) {
+    const annualBudgetMult = budget / (Number(item.budgetAmount || 1));
+    badges.push(`<span class="bill-badge badge-annual-pending">📅 Annual · saving ${fmt(Number(item.budgetAmount || 0))}/mo</span>`);
+  }
+  if (isSplit && !annualPaid) {
+    const partnerShare = Math.max(0, Number(item.splitFullAmount) - Number(item.budgetAmount || 0));
+    badges.push(`<span class="bill-badge badge-partner">👥 Partner covers ${fmt(partnerShare)}</span>`);
+  }
+
   return `
     <div class="bucket-item">
       <div class="bucket-item-row">
         <div class="bucket-item-name">${name}</div>
-        <div class="bucket-item-amounts">
-          <span class="bucket-item-actual" style="color:${color};">${fmt(actual)}</span>
-          <span class="bucket-item-budget"> / ${budget ? fmt(budget) : "—"}</span>
-        </div>
+        ${amountRight}
       </div>
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
-      </div>
+      ${barHTML}
+      ${badges.length ? `<div class="bill-meta-row">${badges.join("")}</div>` : ""}
     </div>`;
 }
 
@@ -1607,24 +1790,81 @@ function handleTxClick(e) {
 
 function renderBudgetView() {
   const container = document.getElementById("budgetView");
-  ensureMonthExists(activeMonthKey);
-  const month  = months[activeMonthKey];
+  const todayKey  = formatMonthKey(new Date());
+  if (!budgetViewKey) budgetViewKey = activeMonthKey || todayKey;
+  if (budgetViewKey > todayKey) budgetViewKey = todayKey;
+
+  const isYTD = budgetViewMode === 'ytd';
+  const [vy, vm] = budgetViewKey.split('-').map(Number);
+  const [ty, tm] = todayKey.split('-').map(Number);
+
+  // keep these three lines only once:
+  const ytdEndMonth   = (vy < ty) ? tm : (vy > ty) ? 12 : vm;
+  const ytdMonthCount = ytdEndMonth;
+  const mult          = isYTD ? ytdMonthCount : 1;   // ← new line
+  const ytdYear       = vy;
+
+
+
+  let viewTxs;
+  if (isYTD) {
+    viewTxs = [];
+    for (let mo = 1; mo <= ytdEndMonth; mo++) {
+      const key = ytdYear + "-" + String(mo).padStart(2, "0");
+      viewTxs.push(...((months[key]?.transactions) || []));
+    }
+  } else {
+    ensureMonthExists(budgetViewKey);
+    viewTxs = months[budgetViewKey].transactions || [];
+  }
+
+  const rawActuals = computeActuals(viewTxs);
   const bills  = appSettings.recurringBills          || [];
   const subs   = appSettings.recurringSubscriptions  || [];
   const invsts = appSettings.recurringInvestments    || [];
   const disc   = appSettings.discretionaryCategories || [];
-  const actuals = computeActuals(month.transactions);
+  const actuals = computeEffectiveActuals(rawActuals, [...bills, ...subs, ...invsts]);
 
-  const totalBillsBudget = bills.reduce((s, b)  => s + Number(b.budgetAmount || 0), 0);
+  // Collect all transactions this calendar year for annual-paid detection
+  const yearTxs = [];
+  for (let mo = 1; mo <= 12; mo++) {
+    const key = vy + "-" + String(mo).padStart(2, "0");
+    yearTxs.push(...(months[key]?.transactions || []));
+  }
+
+
+
+  const totalBillsBudget = bills.reduce((s, b)  => s + Number(b.budgetAmount || 0), 0) * mult;
   const totalBillsActual = bills.reduce((s, b)  => s + (actuals[b.name] || 0), 0);
-  const totalSubsBudget  = subs.reduce((s, b)   => s + Number(b.budgetAmount || 0), 0);
+  const totalSubsBudget  = subs.reduce((s, b)   => s + Number(b.budgetAmount || 0), 0) * mult;
   const totalSubsActual  = subs.reduce((s, b)   => s + (actuals[b.name] || 0), 0);
-  const totalInvstBudget = invsts.reduce((s, b) => s + Number(b.budgetAmount || 0), 0);
+  const totalInvstBudget = invsts.reduce((s, b) => s + Number(b.budgetAmount || 0), 0) * mult;
   const totalInvstActual = invsts.reduce((s, b) => s + (actuals[b.name] || 0), 0);
-  const totalDiscBudget  = disc.reduce((s, d)   => s + Number(d.budgetAmount || 0), 0);
+  const totalDiscBudget  = disc.reduce((s, d)   => s + Number(d.budgetAmount || 0), 0) * mult;
   const totalDiscActual  = disc.reduce((s, d)   => s + (actuals[d.name] || 0), 0);
 
+  const monthDiff  = (vy - ty) * 12 + (vm - tm);
+  const navSub     = isYTD
+    ? (vy === ty ? "Current Year" : vy < ty ? `${ty - vy} year${ty - vy > 1 ? "s" : ""} ago` : "")
+    : (monthDiff === 0 ? "Current Month" : monthDiff === -1 ? "Last Month" : monthDiff < -1 ? `${Math.abs(monthDiff)} months ago` : "");
+  const navLabel   = isYTD ? `${ytdYear} Year to Date` : formatMonthLabelFromKey(budgetViewKey);
+  const canGoNext  = isYTD ? vy < ty : budgetViewKey < todayKey;
+
   container.innerHTML = `
+    <div class="view-mode-toggle">
+      <button class="view-mode-btn ${!isYTD ? "active" : ""}" id="budgetModeMonthly">📅 Monthly</button>
+      <button class="view-mode-btn ${isYTD  ? "active" : ""}" id="budgetModeYTD">📈 Year to Date</button>
+    </div>
+
+    <div class="month-nav">
+      <button class="month-nav-btn" id="budgetNavPrev">&#8249;</button>
+      <div class="month-nav-center">
+        <span class="month-nav-label">${navLabel}</span>
+        ${navSub ? `<span class="month-nav-sub">${navSub}</span>` : ""}
+      </div>
+      <button class="month-nav-btn" id="budgetNavNext" ${canGoNext ? "" : "disabled"}>&#8250;</button>
+    </div>
+
     <div class="bucket-summary-grid">
       <div class="bucket-summary-card">
         <div class="bucket-summary-label">Must Pay</div>
@@ -1651,7 +1891,7 @@ function renderBudgetView() {
             <span class="bucket-section-title">Bills &amp; Fixed Expenses</span>
             <span class="bucket-section-totals"><span>${fmt(totalBillsActual)}</span> / ${fmt(totalBillsBudget)}</span>
           </div>
-          ${bills.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
+          ${bills.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
@@ -1664,7 +1904,7 @@ function renderBudgetView() {
             <span class="bucket-section-title">Subscriptions and Other</span>
             <span class="bucket-section-totals"><span>${fmt(totalSubsActual)}</span> / ${fmt(totalSubsBudget)}</span>
           </div>
-          ${subs.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
+          ${subs.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
@@ -1674,10 +1914,10 @@ function renderBudgetView() {
       <div class="card-body">
         <div class="bucket-section">
           <div class="bucket-section-header">
-            <span class="bucket-section-title">Contributions This Month</span>
+            <span class="bucket-section-title">${isYTD ? "YTD Contributions" : "Contributions This Month"}</span>
             <span class="bucket-section-totals"><span>${fmt(totalInvstActual)}</span> / ${fmt(totalInvstBudget)}</span>
           </div>
-          ${invsts.map(b => renderBucketItem(b.name, actuals[b.name] || 0, b.budgetAmount)).join("")}
+          ${invsts.map(b => renderBucketItem(b, actuals[b.name] || 0, Number(b.budgetAmount || 0) * mult, yearTxs)).join("")}
         </div>
       </div>
     </div>
@@ -1693,9 +1933,26 @@ function renderBudgetView() {
         </div>
         ${disc.length === 0
           ? '<p class="empty-bucket">No discretionary categories configured — add them in Admin.</p>'
-          : disc.map(d => renderBucketItem(d.name, actuals[d.name] || 0, d.budgetAmount)).join("")}
+          : disc.map(d => renderBucketItem(d.name, actuals[d.name] || 0, Number(d.budgetAmount || 0) * mult)).join("")}
       </div>
     </div>`;
+
+  document.getElementById("budgetModeMonthly").addEventListener("click", () => { budgetViewMode = "monthly"; renderBudgetView(); });
+  document.getElementById("budgetModeYTD").addEventListener("click",     () => { budgetViewMode = "ytd";     renderBudgetView(); });
+
+  document.getElementById("budgetNavPrev").addEventListener("click", () => {
+    if (isYTD) { budgetViewKey = (vy - 1) + "-" + String(vm).padStart(2, "0"); }
+    else       { budgetViewKey = formatMonthKey(new Date(vy, vm - 2, 1)); }
+    ensureMonthExists(budgetViewKey); renderBudgetView();
+  });
+  document.getElementById("budgetNavNext")?.addEventListener("click", () => {
+    if (isYTD) {
+      if (vy + 1 <= ty) { budgetViewKey = (vy + 1) + "-" + String(vm).padStart(2, "0"); ensureMonthExists(budgetViewKey); renderBudgetView(); }
+    } else {
+      const candidate = formatMonthKey(new Date(vy, vm, 1));
+      if (candidate <= todayKey) { budgetViewKey = candidate; ensureMonthExists(budgetViewKey); renderBudgetView(); }
+    }
+  });
 }
 
 // ─────────────────────────────────────────
@@ -1734,7 +1991,15 @@ function renderMonthlyView() {
     viewTxs = months[monthlyViewKey].transactions || [];
   }
 
-  const actuals = computeActuals(viewTxs);
+  const rawActuals = computeActuals(viewTxs);
+  const actuals    = computeEffectiveActuals(rawActuals, allItems);
+
+  // All transactions this calendar year (for annual-paid detection)
+  const mYearTxs = [];
+  for (let mo = 1; mo <= 12; mo++) {
+    const key = ytdYear + "-" + String(mo).padStart(2, "0");
+    mYearTxs.push(...(months[key]?.transactions || []));
+  }
 
   const monthDiff = (vy - ty) * 12 + (vm - tm);
   const navSub = isYTD
@@ -1755,6 +2020,8 @@ function renderMonthlyView() {
     const actual = actuals[item.name] || 0;
     const budget = Number(item.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
     if (!budget) return;
+    // Annual items that are paid count as on-track regardless
+    if (item.annualEnabled && isAnnualPaid(item, mYearTxs)) { countOnTrack++; return; }
     if (!actual) { countNotStarted++; return; }
     const pct = actual / budget;
     if (pct >= 1) countOver++;
@@ -1763,11 +2030,19 @@ function renderMonthlyView() {
   });
 
   const overItems = allItems
-    .filter(i => { const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); return b&&a>b; })
+    .filter(i => {
+      if (i.annualEnabled && isAnnualPaid(i, mYearTxs)) return false;
+      const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1);
+      return b && a > b;
+    })
     .map(i => ({ name:i.name, actual:actuals[i.name]||0, budget:Number(i.budgetAmount)*(isYTD?ytdMonthCount:1), over:(actuals[i.name]||0)-Number(i.budgetAmount)*(isYTD?ytdMonthCount:1) }));
 
   const atRiskItems = allItems
-    .filter(i => { const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1); if(!b)return false; const p=a/b; return p>=0.8&&p<1; })
+    .filter(i => {
+      if (i.annualEnabled && isAnnualPaid(i, mYearTxs)) return false;
+      const a=actuals[i.name]||0, b=Number(i.budgetAmount||0)*(isYTD?ytdMonthCount:1);
+      if(!b)return false; const p=a/b; return p>=0.8&&p<1;
+    })
     .map(i => ({ name:i.name, actual:actuals[i.name]||0, budget:Number(i.budgetAmount)*(isYTD?ytdMonthCount:1), pct:((actuals[i.name]||0)/(Number(i.budgetAmount)*(isYTD?ytdMonthCount:1)))*100 }));
 
   const buckets = [
@@ -2553,18 +2828,102 @@ function renderAdminBudgetSection(section, title, items, isDisc) {
 function renderAdminBudgetItemRow(section, item, isDisc) {
   const editing = editingBudgetItem?.section === section && editingBudgetItem?.id === item.id;
   if (editing) {
+    const splitEnabled  = !!item.splitEnabled;
+    const annualEnabled = !!item.annualEnabled;
+    const splitFull     = Number(item.splitFullAmount || 0);
+    const annualTotal   = Number(item.annualTotal || 0) || (Number(item.budgetAmount || 0) * 12);
+    const partnerAuto   = splitFull > 0 ? Math.max(0, splitFull - Number(item.budgetAmount || 0)) : 0;
+
     return `
-      <div class="admin-item-edit-row" data-id="${item.id}">
-        <input class="admin-input admin-edit-name" type="text" value="${item.name}" placeholder="Name" style="flex:1;min-width:120px;">
-        <input class="admin-input admin-edit-budget" type="number" value="${item.budgetAmount || ""}" placeholder="${isDisc ? "$ budget (opt)" : "$ budget"}" style="width:110px;">
-        <button class="admin-btn admin-btn-success" data-action="save" data-section="${section}" data-id="${item.id}">✓ Save</button>
-        <button class="admin-btn" data-action="cancel">✕</button>
+      <div class="admin-edit-block" data-id="${item.id}">
+        <div class="admin-edit-grid">
+          <div class="full">
+            <label class="admin-edit-label">Name</label>
+            <input class="admin-input admin-edit-name" type="text" value="${item.name}" placeholder="Name" style="width:100%;">
+          </div>
+          <div>
+            <label class="admin-edit-label">${isDisc ? "Budget (opt)" : splitEnabled ? "Your Share / mo" : "Budget / mo"}</label>
+            <input class="admin-input admin-edit-budget" type="number" value="${item.budgetAmount || ""}" placeholder="$" style="width:100%;">
+          </div>
+          ${!isDisc ? `
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label class="admin-edit-label" style="opacity:0;">–</label>
+            <div style="font-size:11px;color:var(--color-text-secondary);padding:8px 0 4px;font-style:italic;">
+              ${splitEnabled && splitFull > 0 ? `Partner covers ${fmt(partnerAuto)}` : annualEnabled ? `Annual: ${fmt(annualTotal)}` : ""}
+            </div>
+          </div>` : ""}
+        </div>
+
+        ${!isDisc ? `
+        <label class="admin-toggle-row${splitEnabled ? " active" : ""}" id="splitToggleLabel_${item.id}">
+          <input type="checkbox" id="splitCheck_${item.id}" ${splitEnabled ? "checked" : ""} onchange="
+            this.closest('.admin-edit-block').querySelector('#splitFields_${item.id}').style.display = this.checked ? 'grid' : 'none';
+            this.closest('label').classList.toggle('active', this.checked);
+          ">
+          <span class="admin-toggle-label">🔀 Split with partner</span>
+          <span style="font-size:10px;color:var(--color-text-secondary);">You log full amount · your share counts against budget</span>
+        </label>
+        <div class="admin-sub-fields" id="splitFields_${item.id}" style="display:${splitEnabled ? "grid" : "none"};">
+          <div>
+            <label class="admin-edit-label">Full bill amount</label>
+            <input class="admin-input admin-edit-split-full" type="number" value="${splitFull || ""}" placeholder="e.g. 2000" style="width:100%;"
+              oninput="
+                const full = Number(this.value||0);
+                const your = Number(this.closest('.admin-edit-block').querySelector('.admin-edit-budget').value||0);
+                const el = this.closest('.admin-edit-block').querySelector('.admin-split-partner-display');
+                if(el) el.textContent = full > 0 ? 'Partner: ' + (full > your ? ('$'+(full-your).toFixed(2)) : '$0.00') : '';
+              ">
+          </div>
+          <div>
+            <label class="admin-edit-label">Partner's share</label>
+            <div class="admin-split-partner-display" style="font-size:13px;font-weight:700;color:var(--color-text-secondary);padding:8px 0 4px;">
+              ${splitFull > 0 ? `Partner: ${fmt(partnerAuto)}` : "Auto-calculated"}
+            </div>
+          </div>
+        </div>
+
+        <label class="admin-toggle-row${annualEnabled ? " active" : ""}">
+          <input type="checkbox" id="annualCheck_${item.id}" ${annualEnabled ? "checked" : ""} onchange="
+            this.closest('.admin-edit-block').querySelector('#annualFields_${item.id}').style.display = this.checked ? 'grid' : 'none';
+            this.closest('label').classList.toggle('active', this.checked);
+          ">
+          <span class="admin-toggle-label">📅 Annual fee</span>
+          <span style="font-size:10px;color:var(--color-text-secondary);">Set aside monthly · marks paid when charge is logged</span>
+        </label>
+        <div class="admin-sub-fields" id="annualFields_${item.id}" style="display:${annualEnabled ? "grid" : "none"};">
+          <div>
+            <label class="admin-edit-label">Annual total</label>
+            <input class="admin-input admin-edit-annual-total" type="number" value="${annualTotal || ""}" placeholder="e.g. 1800" style="width:100%;">
+          </div>
+          <div>
+            <label class="admin-edit-label">Monthly set-aside</label>
+            <div style="font-size:13px;font-weight:700;color:var(--color-primary);padding:8px 0 4px;">${fmt(Number(item.budgetAmount || 0))}/mo</div>
+          </div>
+        </div>` : ""}
+
+        <div style="display:flex;gap:6px;justify-content:flex-end;padding-top:8px;">
+          <button class="admin-btn" data-action="cancel">✕ Cancel</button>
+          <button class="admin-btn admin-btn-success" data-action="save" data-section="${section}" data-id="${item.id}">✓ Save</button>
+        </div>
       </div>`;
   }
+
+  // Display row — show badges for split/annual
   const budgetDisplay = item.budgetAmount ? fmt(item.budgetAmount) : (isDisc ? "No budget" : "—");
+  const badges = [];
+  if (item.splitEnabled && Number(item.splitFullAmount) > 0) {
+    const partner = Math.max(0, Number(item.splitFullAmount) - Number(item.budgetAmount || 0));
+    badges.push(`<span class="bill-badge badge-partner" style="font-size:9px;">🔀 Split · partner ${fmt(partner)}</span>`);
+  }
+  if (item.annualEnabled) {
+    badges.push(`<span class="bill-badge badge-annual-pending" style="font-size:9px;">📅 Annual</span>`);
+  }
   return `
-    <div class="admin-item-row">
-      <div class="admin-item-name">${item.name}</div>
+    <div class="admin-item-row" style="flex-wrap:wrap;gap:4px;">
+      <div class="admin-item-name" style="flex:1;min-width:0;">
+        ${item.name}
+        ${badges.length ? `<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;">${badges.join("")}</div>` : ""}
+      </div>
       <div class="admin-item-budget" style="${!item.budgetAmount && isDisc ? "color:var(--color-text-secondary);font-weight:400;" : ""}">${budgetDisplay}</div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="admin-btn"                  data-action="edit"   data-section="${section}" data-id="${item.id}">✏️</button>
@@ -2584,12 +2943,30 @@ function handleAdminClick(e) {
   const saveBtn = t.closest("[data-action='save']");
   if (saveBtn) {
     const {section,id}=saveBtn.dataset;
-    const row=document.querySelector(`.admin-item-edit-row[data-id="${id}"]`); if(!row)return;
-    const name=row.querySelector(".admin-edit-name").value.trim();
-    const budget=Number(row.querySelector(".admin-edit-budget").value||0);
+    const block=document.querySelector(`.admin-edit-block[data-id="${id}"]`); if(!block)return;
+    const name=block.querySelector(".admin-edit-name").value.trim();
+    const budget=Number(block.querySelector(".admin-edit-budget").value||0);
     if(!name){alert("Please enter a name.");return;}
     const item=getSectionArray(section).find(i=>i.id===id);
-    if(item){item.name=name;item.budgetAmount=budget;}
+    if(item){
+      item.name=name; item.budgetAmount=budget;
+      // Split
+      const splitCheck = block.querySelector(`#splitCheck_${id}`);
+      if (splitCheck) {
+        item.splitEnabled   = splitCheck.checked;
+        item.splitFullAmount = Number(block.querySelector(".admin-edit-split-full")?.value || 0);
+      } else {
+        item.splitEnabled = false; item.splitFullAmount = 0;
+      }
+      // Annual
+      const annualCheck = block.querySelector(`#annualCheck_${id}`);
+      if (annualCheck) {
+        item.annualEnabled = annualCheck.checked;
+        item.annualTotal   = Number(block.querySelector(".admin-edit-annual-total")?.value || 0) || budget * 12;
+      } else {
+        item.annualEnabled = false; item.annualTotal = 0;
+      }
+    }
     editingBudgetItem=null; saveState(); renderAdminView(); return;
   }
   const deleteBtn = t.closest("[data-action='delete']");
@@ -2611,6 +2988,23 @@ function handleAdminClick(e) {
     saveState(); renderAdminView(); return;
   }
 }
+
+// ─────────────────────────────────────────
+//  BACK TO TOP BUTTON
+// ─────────────────────────────────────────
+
+(function () {
+  const btn = document.getElementById("backToTopBtn");
+  const SHOW_THRESHOLD = 320;
+
+  window.addEventListener("scroll", () => {
+    btn.classList.toggle("visible", window.scrollY > SHOW_THRESHOLD);
+  }, { passive: true });
+
+  btn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+})();
 
 // ─────────────────────────────────────────
 //  INIT
