@@ -2221,7 +2221,7 @@ function renderMonthlyView() {
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;flex-wrap:wrap;gap:6px;">
-          <span style="font-size:13px;color:var(--color-text-secondary);">
+          <span style="font-size:10px;color:var(--color-text-secondary);">
             ${viewIncome > 0 ? `<span style="font-size:10px;color:var(--color-text-secondary);">
             Income after bills: <strong style="color:${viewIncome - fixedTotalSpent >= 0 ? "var(--color-success)" : "var(--color-danger)"};">${fmt(viewIncome - fixedTotalSpent)}</strong>
           </span>` : ""}
