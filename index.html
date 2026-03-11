@@ -504,6 +504,31 @@
     .goal-icon-opt { font-size: 20px; padding: 6px 8px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color .1s, background .1s; background: rgba(255,255,255,0.04); }
     .goal-icon-opt.selected { border-color: var(--color-primary); background: rgba(106,166,255,0.12); }
 
+    /* ── Retirement Calculator ── */
+    .ret-snapshot-hero { text-align:center; padding:16px 0 20px; }
+    .ret-snapshot-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--color-text-secondary); margin-bottom:6px; }
+    .ret-snapshot-value { font-size:38px; font-weight:800; color:var(--color-primary); line-height:1; }
+    .ret-snapshot-sub   { font-size:12px; color:var(--color-text-secondary); margin-top:6px; line-height:1.4; }
+    .ret-stacked-bar    { height:18px; border-radius:9px; overflow:hidden; display:flex; gap:2px; margin:8px 0 5px; }
+    .ret-bar-contrib    { background:rgba(106,166,255,0.55); border-radius:9px 0 0 9px; transition:width .4s ease; min-width:4px; }
+    .ret-bar-growth     { background:var(--color-success); border-radius:0 9px 9px 0; transition:width .4s ease; min-width:4px; }
+    .ret-bar-labels     { display:flex; justify-content:space-between; font-size:11px; }
+    .ret-table          { width:100%; border-collapse:collapse; min-width:340px; }
+    .ret-table th       { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; padding:0 5px 9px; }
+    .ret-table td       { padding:7px 5px; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .ret-table tr:last-child td { border-bottom:none; }
+    .ret-row-retire td  { background:rgba(106,166,255,0.07); }
+    .ret-row-retire td:first-child { border-radius:8px 0 0 8px; }
+    .ret-row-retire td:last-child  { border-radius:0 8px 8px 0; }
+    .ret-milestone-row  { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--color-border); }
+    .ret-milestone-row:last-child { border-bottom:none; }
+    .ret-milestone-icon { font-size:20px; flex-shrink:0; }
+    .ret-milestone-info { flex:1; min-width:0; }
+    .ret-milestone-main { font-size:13px; font-weight:700; color:var(--color-text-primary); }
+    .ret-milestone-sub  { font-size:11px; color:var(--color-text-secondary); margin-top:2px; }
+    .ret-income-row     { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--color-border); }
+    .ret-income-row:last-child { border-bottom:none; }
+
     /* ── Emergency Fund card ── */
     .ef-month-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .ef-month-label { font-size: 11px; font-weight: 700; color: var(--color-text-secondary); width: 52px; flex-shrink: 0; }
@@ -1372,7 +1397,7 @@ function applyStateObject(state) {
   if (!plannerState.goals || plannerState.goals.length === 0) {
     plannerState.goals = [
       { id: uid(), type: "emergency", name: "Emergency Fund",  icon: "🛡️", currentAmount: 0, baselineMonths: 3, goalMonths: 6 },
-      { id: uid(), type: "generic",   name: "Retirement",      icon: "🏖️", targetAmount: 500000, currentAmount: 0, monthlyContribution: 500, targetDate: "", note: "Contributions via 401(k), IRA, or brokerage." },
+      { id: uid(), type: "retirement", name: "Retirement",      icon: "🏖️", currentAmount: 0, monthlyContribution: 500, retCurrentSavings: 0, retMonthlyContrib: 500, retCurrentAge: 35, retRetirementAge: 65 },
       { id: uid(), type: "home", name: "Home Purchase", icon: "🏠",
         currentSavings: 0, monthlyNetIncome: 0,
         interestRate: 6.25, loanTermYears: 30, hoaFee: 300,
@@ -2223,18 +2248,13 @@ function renderMonthlyView() {
        <div style="display:flex;align-items:center;padding:8px 0 0;">
   <span style="flex:1;font-size:13px;color:var(--color-text-secondary);">
     ${viewIncome > 0
-      ? `<span style="display:block;">Income after bills:</span>
-         <strong style="color:${viewIncome - fixedTotalSpent >= 0 ? "var(--color-success)" : "var(--color-danger)"};">
-           ${fmt(viewIncome - fixedTotalSpent)}
-         </strong>`
+      ? `Income after bills:<br><strong style="color:${viewIncome - fixedTotalSpent >= 0 ? "var(--color-success)" : "var(--color-danger)"};">${fmt(viewIncome - fixedTotalSpent)}</strong>`
       : `&nbsp;`}
   </span>
   <span style="flex:1;font-size:13px;color:var(--color-text-secondary);text-align:right;">
     ${fixedRemaining >= 0
-      ? `<span style="display:block;">Budget surplus:</span>
-         <strong style="color:var(--color-success);">${fmt(fixedRemaining)}</strong>`
-      : `<span style="display:block;">Over budget:</span>
-         <strong style="color:var(--color-danger);">+${fmt(Math.abs(fixedRemaining))}</strong>`}
+      ? `Budget surplus:<br><strong style="color:var(--color-success);">${fmt(fixedRemaining)}</strong>`
+      : `Over budget:<br><strong style="color:var(--color-danger);">+${fmt(Math.abs(fixedRemaining))}</strong>`}
   </span>
 </div>
       </div>
@@ -2626,6 +2646,254 @@ function renderAnnualView() {
       </div>`;
   }
 
+  function renderRetirementTab(g) {
+    const currentSavings = Number(g.retCurrentSavings ?? g.currentAmount ?? 0);
+    const monthlyContrib = Number(g.retMonthlyContrib ?? g.monthlyContribution ?? 0);
+    const currentAge     = Number(g.retCurrentAge     ?? 35);
+    const retirementAge  = Number(g.retRetirementAge  ?? 65);
+    const yearsToRetire  = Math.max(0, retirementAge - currentAge);
+    const monthsToRetire = yearsToRetire * 12;
+
+    // Future value: lump sum + monthly contributions compounded monthly
+    function fv(principal, monthly, annualRate, years) {
+      if (years <= 0) return principal;
+      const r = annualRate / 100 / 12;
+      const n = years * 12;
+      if (r === 0) return principal + monthly * n;
+      return principal * Math.pow(1 + r, n) + monthly * ((Math.pow(1 + r, n) - 1) / r);
+    }
+
+    function fmtBig(n) {
+      if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+      if (n >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
+      return "$" + Number(n).toFixed(0);
+    }
+
+    function yearsToTarget(target) {
+      if (currentSavings >= target) return 0;
+      for (let y = 1; y <= 60; y++) {
+        if (fv(currentSavings, monthlyContrib, 7, y) >= target) return y;
+      }
+      return null;
+    }
+
+    const SCENARIOS = [
+      { label:"4%",  rate:4,  color:"var(--color-text-secondary)", bg:"rgba(148,163,184,0.1)", border:"rgba(148,163,184,0.2)" },
+      { label:"6%",  rate:6,  color:"var(--color-warning)",        bg:"rgba(251,191,36,0.08)", border:"rgba(251,191,36,0.2)"  },
+      { label:"7%",  rate:7,  color:"var(--color-primary)",        bg:"rgba(106,166,255,0.1)", border:"rgba(106,166,255,0.25)"},
+      { label:"8%",  rate:8,  color:"var(--color-success)",        bg:"rgba(74,222,128,0.08)", border:"rgba(74,222,128,0.2)"  },
+      { label:"10%", rate:10, color:"#fb923c",                     bg:"rgba(251,146,60,0.08)", border:"rgba(251,146,60,0.2)"  },
+    ];
+
+    // Key numbers at 7%
+    const retBal7        = fv(currentSavings, monthlyContrib, 7, yearsToRetire);
+    const totalContrib   = currentSavings + monthlyContrib * monthsToRetire;
+    const growthAt7      = Math.max(0, retBal7 - totalContrib);
+    const growthPct7     = retBal7 > 0 ? (growthAt7 / retBal7) * 100 : 0;
+    const contribPct7    = 100 - growthPct7;
+    const monthlyIncome7 = retBal7 * 0.04 / 12;
+
+    // Build table row years: smart set covering key intervals
+    const rowYearSet = new Set();
+    if (yearsToRetire > 0) {
+      [5, 10, 15, 20, 25, 30].forEach(y => { if (y < yearsToRetire) rowYearSet.add(y); });
+      rowYearSet.add(yearsToRetire);                                          // retirement
+      if (yearsToRetire + 10 <= 50) rowYearSet.add(yearsToRetire + 10);      // +10 post-retirement
+      if (yearsToRetire + 20 <= 55) rowYearSet.add(yearsToRetire + 20);      // +20 post-retirement
+    } else {
+      [5, 10, 20, 30].forEach(y => rowYearSet.add(y));
+    }
+    const rowYears = Array.from(rowYearSet).sort((a, b) => a - b);
+
+    const tableRows = rowYears.map(years => {
+      const age   = currentAge + years;
+      const isRet = years === yearsToRetire && yearsToRetire > 0;
+      const trCls = isRet ? ' class="ret-row-retire"' : '';
+      const cells = SCENARIOS.map(s => {
+        const val = fv(currentSavings, monthlyContrib, s.rate, years);
+        return `<td style="text-align:right;font-weight:${isRet?"800":"500"};color:${isRet?s.color:"var(--color-text-primary)"};">${fmtBig(val)}</td>`;
+      }).join("");
+      return `<tr${trCls}>
+        <td style="color:${isRet?"var(--color-primary)":"var(--color-text-secondary)"};font-weight:${isRet?"700":"400"};white-space:nowrap;">
+          ${isRet?"🎯 ":""}Age ${age}<span style="display:block;font-size:9px;opacity:.65;">${years}yr${years!==1?"s":""}</span>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join("");
+
+    // Income rows at retirement
+    const incomeRows = SCENARIOS.map(s => {
+      const bal     = fv(currentSavings, monthlyContrib, s.rate, yearsToRetire);
+      const monthly = bal * 0.04 / 12;
+      return `<div class="ret-income-row">
+        <div>
+          <span style="font-size:13px;font-weight:700;color:${s.color};">${s.label} return</span>
+          <span style="font-size:10px;color:var(--color-text-secondary);margin-left:5px;">→ ${fmtBig(bal)}</span>
+        </div>
+        <span style="font-size:15px;font-weight:800;color:${s.color};">${fmt(monthly)}<span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">/mo</span></span>
+      </div>`;
+    }).join("");
+
+    // Milestones
+    const milestoneTargets = [
+      { target:100000,  emoji:"💰", label:"$100K"  },
+      { target:250000,  emoji:"💎", label:"$250K"  },
+      { target:500000,  emoji:"🔥", label:"$500K"  },
+      { target:1000000, emoji:"🎉", label:"$1 Million" },
+      { target:2000000, emoji:"🚀", label:"$2 Million" },
+    ];
+    const milestoneRows = milestoneTargets.map(m => {
+      if (currentSavings >= m.target) {
+        return `<div class="ret-milestone-row">
+          <span class="ret-milestone-icon">${m.emoji}</span>
+          <div class="ret-milestone-info">
+            <div class="ret-milestone-main" style="color:var(--color-success);">Already at ${m.label} ✓</div>
+          </div>
+        </div>`;
+      }
+      const yrs = yearsToTarget(m.target);
+      if (yrs === null) {
+        return `<div class="ret-milestone-row" style="opacity:.5;">
+          <span class="ret-milestone-icon">${m.emoji}</span>
+          <div class="ret-milestone-info">
+            <div class="ret-milestone-main">${m.label} — not reached in 60 yrs</div>
+            <div class="ret-milestone-sub">Increase contributions to reach this</div>
+          </div>
+        </div>`;
+      }
+      const ageAtMilestone = currentAge + yrs;
+      const isPreRetire    = ageAtMilestone < retirementAge;
+      const timing         = isPreRetire ? "before retirement 🎯" : "after retirement 🏖️";
+      return `<div class="ret-milestone-row">
+        <span class="ret-milestone-icon">${m.emoji}</span>
+        <div class="ret-milestone-info">
+          <div class="ret-milestone-main">${m.label} in <span style="color:${isPreRetire?"var(--color-primary)":"var(--color-success)"};">${yrs} year${yrs!==1?"s":""}</span></div>
+          <div class="ret-milestone-sub">Age ${ageAtMilestone} · ${timing}</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    const noYears = yearsToRetire <= 0;
+
+    return `
+      <!-- Inputs -->
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">⚙️ Your Numbers</h2></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div>
+              <label class="goal-field-label">Current Savings ($)</label>
+              <input class="goal-input" type="number" step="500" min="0" data-ret="currentSavings" value="${currentSavings}" placeholder="0">
+            </div>
+            <div>
+              <label class="goal-field-label">Monthly Contribution ($)</label>
+              <input class="goal-input" type="number" step="50" min="0" data-ret="monthlyContrib" value="${monthlyContrib}" placeholder="500">
+            </div>
+            <div>
+              <label class="goal-field-label">Current Age</label>
+              <input class="goal-input" type="number" step="1" min="18" max="80" data-ret="currentAge" value="${currentAge}">
+            </div>
+            <div>
+              <label class="goal-field-label">Retirement Age</label>
+              <input class="goal-input" type="number" step="1" min="40" max="90" data-ret="retirementAge" value="${retirementAge}">
+            </div>
+          </div>
+          <button class="btn" style="width:100%;padding:10px;font-size:14px;font-weight:700;" data-goal-action="save-retirement" data-id="${g.id}">📊 Update Projections</button>
+        </div>
+      </div>
+
+      <!-- Snapshot at 7% -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📊 Retirement Snapshot</h2>
+          <span style="font-size:11px;font-weight:600;color:var(--color-primary);background:rgba(106,166,255,0.1);border:1px solid rgba(106,166,255,0.22);border-radius:6px;padding:3px 8px;">7% expected return</span>
+        </div>
+        <div class="card-body">
+          ${noYears ? `<p style="color:var(--color-warning);font-size:13px;margin:0;">⚠️ Retirement age must be greater than current age.</p>` : `
+          <div class="ret-snapshot-hero">
+            <div class="ret-snapshot-label">Projected Balance at Age ${retirementAge}</div>
+            <div class="ret-snapshot-value">${fmtBig(retBal7)}</div>
+            <div class="ret-snapshot-sub">${yearsToRetire} year${yearsToRetire!==1?"s":""} to go · <strong style="color:var(--color-success);">${fmt(monthlyIncome7)}/mo</strong> income (4% rule)</div>
+          </div>
+
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:4px;display:flex;justify-content:space-between;">
+            <span>Your Contributions</span><span>Market Growth</span>
+          </div>
+          <div class="ret-stacked-bar">
+            <div class="ret-bar-contrib" style="width:${Math.max(3, contribPct7)}%;"></div>
+            <div class="ret-bar-growth"  style="width:${Math.max(3, growthPct7)}%;"></div>
+          </div>
+          <div class="ret-bar-labels">
+            <span style="color:var(--color-primary);">${fmtBig(totalContrib)} <span style="color:var(--color-text-secondary);">(${contribPct7.toFixed(0)}%)</span></span>
+            <span style="color:var(--color-success);">${fmtBig(growthAt7)} <span style="color:var(--color-text-secondary);">(${growthPct7.toFixed(0)}%)</span></span>
+          </div>
+
+          <div class="stat-grid-2" style="margin-top:14px;">
+            <div class="stat-tile">
+              <div class="stat-tile-label">Total Contributed</div>
+              <div class="stat-tile-value" style="font-size:18px;color:var(--color-primary);">${fmtBig(totalContrib)}</div>
+              <div class="stat-tile-sub">${fmt(monthlyContrib)}/mo × ${monthsToRetire} months</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-label">Compound Growth</div>
+              <div class="stat-tile-value" style="font-size:18px;color:var(--color-success);">${fmtBig(growthAt7)}</div>
+              <div class="stat-tile-sub">Money your money makes</div>
+            </div>
+          </div>`}
+        </div>
+      </div>
+
+      <!-- Multi-rate projection table -->
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">📈 Growth by Rate of Return</h2></div>
+        <div class="card-body">
+          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;">Projected balance at each age across five return scenarios. The highlighted row is your retirement target.</p>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table class="ret-table">
+              <thead>
+                <tr>
+                  <th style="text-align:left;color:var(--color-text-secondary);padding-left:0;"></th>
+                  ${SCENARIOS.map(s=>`<th style="text-align:right;color:${s.color};">${s.label}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+                <tr>
+                  <td colspan="${SCENARIOS.length+1}" style="font-size:10px;color:var(--color-text-secondary);padding-top:10px;border-bottom:none;">
+                    Starting with ${fmtBig(currentSavings)}, adding ${fmt(monthlyContrib)}/mo. Returns shown are annualized, compounded monthly.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly income in retirement -->
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">💸 Monthly Income at Retirement</h2></div>
+        <div class="card-body">
+          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;">Based on the <strong style="color:var(--color-text-primary);">4% rule</strong> — withdraw 4% of your balance per year. A widely used guideline for a 30+ year retirement.</p>
+          ${incomeRows}
+        </div>
+      </div>
+
+      <!-- Milestones -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🏁 Milestones</h2>
+          <span style="font-size:11px;color:var(--color-text-secondary);">at 7% return</span>
+        </div>
+        <div class="card-body">
+          ${milestoneRows}
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;padding:4px 0 8px;">
+        <button class="admin-btn admin-btn-danger" style="padding:6px 14px;" data-goal-action="delete" data-id="${g.id}">🗑️ Remove Goal</button>
+      </div>`;
+  }
+
   function renderGenericTab(g) {
     const isEditing=editingGoalId===g.id;
     const pct=Number(g.targetAmount)?Math.min((Number(g.currentAmount||0)/Number(g.targetAmount))*100,100):0;
@@ -2683,9 +2951,10 @@ function renderAnnualView() {
   } else {
     const g = goals.find(g=>g.id===futureActiveTab);
     if (g) {
-      if      (g.type==="emergency") tabContent = renderEmergencyTab(g);
-      else if (g.type==="home")      tabContent = renderHomeTab(g);
-      else                           tabContent = renderGenericTab(g);
+      if      (g.type==="emergency")  tabContent = renderEmergencyTab(g);
+      else if (g.type==="home")       tabContent = renderHomeTab(g);
+      else if (g.type==="retirement") tabContent = renderRetirementTab(g);
+      else                            tabContent = renderGenericTab(g);
     }
   }
 
@@ -2794,6 +3063,17 @@ function handleFutureClick(e) {
     g.baselineMonths = Number(document.getElementById("efBaselineVal")?.value||3);
     g.goalMonths     = Number(document.getElementById("efGoalVal")?.value||6);
     editingGoalId=null; saveState(); renderAnnualView(); return;
+  }
+  if (action==="save-retirement") {
+    const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
+    const av=document.getElementById("annualView");
+    g.retCurrentSavings = Number(av.querySelector("[data-ret='currentSavings']")?.value||0);
+    g.retMonthlyContrib = Number(av.querySelector("[data-ret='monthlyContrib']")?.value||0);
+    g.retCurrentAge     = Number(av.querySelector("[data-ret='currentAge']")?.value||35);
+    g.retRetirementAge  = Number(av.querySelector("[data-ret='retirementAge']")?.value||65);
+    g.currentAmount       = g.retCurrentSavings;
+    g.monthlyContribution = g.retMonthlyContrib;
+    saveState(); renderAnnualView(); return;
   }
   if (action==="save-edit") {
     const av=document.getElementById("annualView");
