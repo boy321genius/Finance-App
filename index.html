@@ -2223,13 +2223,18 @@ function renderMonthlyView() {
        <div style="display:flex;align-items:center;padding:8px 0 0;">
   <span style="flex:1;font-size:13px;color:var(--color-text-secondary);">
     ${viewIncome > 0
-      ? `Income after bills:<br><strong style="color:${viewIncome - fixedTotalSpent >= 0 ? "var(--color-success)" : "var(--color-danger)"};">${fmt(viewIncome - fixedTotalSpent)}</strong>`
+      ? `<span style="display:block;">Income after bills:</span>
+         <strong style="color:${viewIncome - fixedTotalSpent >= 0 ? "var(--color-success)" : "var(--color-danger)"};">
+           ${fmt(viewIncome - fixedTotalSpent)}
+         </strong>`
       : `&nbsp;`}
   </span>
   <span style="flex:1;font-size:13px;color:var(--color-text-secondary);text-align:right;">
     ${fixedRemaining >= 0
-      ? `Budget surplus:<br><strong style="color:var(--color-success);">${fmt(fixedRemaining)}</strong>`
-      : `Over budget:<br><strong style="color:var(--color-danger);">+${fmt(Math.abs(fixedRemaining))}</strong>`}
+      ? `<span style="display:block;">Budget surplus:</span>
+         <strong style="color:var(--color-success);">${fmt(fixedRemaining)}</strong>`
+      : `<span style="display:block;">Over budget:</span>
+         <strong style="color:var(--color-danger);">+${fmt(Math.abs(fixedRemaining))}</strong>`}
   </span>
 </div>
       </div>
