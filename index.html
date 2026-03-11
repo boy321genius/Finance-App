@@ -504,6 +504,20 @@
     .goal-icon-opt { font-size: 20px; padding: 6px 8px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color .1s, background .1s; background: rgba(255,255,255,0.04); }
     .goal-icon-opt.selected { border-color: var(--color-primary); background: rgba(106,166,255,0.12); }
 
+    /* Goal type picker */
+    .goal-type-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+    .goal-type-tile { padding:12px 8px; border-radius:12px; cursor:pointer; border:2px solid var(--color-border); background:rgba(255,255,255,0.03); text-align:center; transition:border-color .15s, background .15s; }
+    .goal-type-tile:hover { border-color:rgba(106,166,255,0.3); background:rgba(106,166,255,0.05); }
+    .goal-type-tile.selected { border-color:var(--color-primary); background:rgba(106,166,255,0.11); }
+    .goal-type-icon { font-size:22px; line-height:1; margin-bottom:5px; }
+    .goal-type-label { font-size:11px; font-weight:800; color:var(--color-text-primary); letter-spacing:.1px; }
+    .goal-type-sub { font-size:9px; color:var(--color-text-secondary); margin-top:2px; line-height:1.3; }
+
+    /* Debt payoff display */
+    .debt-amort-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--color-border); }
+    .debt-amort-row:last-child { border-bottom:none; }
+    .debt-vs-row { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:10px; margin-bottom:6px; background:rgba(10,19,38,0.5); border:1px solid var(--color-border); }
+
     /* ── Retirement Calculator ── */
     .ret-snapshot-hero { text-align:center; padding:16px 0 20px; }
     .ret-snapshot-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--color-text-secondary); margin-bottom:6px; }
@@ -1393,6 +1407,23 @@ function applyStateObject(state) {
   if (!appSettings.recurringSubscriptions?.length)  appSettings.recurringSubscriptions  = DEFAULT_SUBS.map(i => ({ ...i }));
   if (!appSettings.recurringInvestments?.length)    appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
   if (!appSettings.discretionaryCategories?.length) appSettings.discretionaryCategories = DEFAULT_DISC.map(i => ({ ...i }));
+
+  // Migrate: upgrade any generic "Retirement" goal to type="retirement"
+  if (plannerState.goals) {
+    plannerState.goals = plannerState.goals.map(g => {
+      if (g.type === "generic" && g.name === "Retirement") {
+        return {
+          ...g,
+          type: "retirement",
+          retCurrentSavings: Number(g.currentAmount || 0),
+          retMonthlyContrib: Number(g.monthlyContribution || 500),
+          retCurrentAge:     g.retCurrentAge    || 35,
+          retRetirementAge:  g.retRetirementAge || 65,
+        };
+      }
+      return g;
+    });
+  }
 
   if (!plannerState.goals || plannerState.goals.length === 0) {
     plannerState.goals = [
@@ -2458,6 +2489,25 @@ function renderAnnualView() {
         const cur=Number(g.currentSavings||0);
         pct=totalCash?Math.min((cur/totalCash)*100,100):0;
         sub=`${fmt(cur)} of ~${fmt(totalCash)} needed · Scenario A`;
+      } else if (g.type==="debt") {
+        const bal  = Number(g.debtBalance ?? g.currentAmount ?? 0);
+        const orig = Number(g.debtOriginal ?? bal);
+        const paid = Math.max(0, orig - bal);
+        pct   = orig > 0 ? Math.min((paid / orig) * 100, 100) : 0;
+        sub   = `${fmt(bal)} remaining · ${fmt(paid)} paid off`;
+        color = pct>=80?"var(--color-success)":pct>=40?"var(--color-warning)":"var(--color-danger)";
+      } else if (g.type==="investment") {
+        const cur = Number(g.currentAmount||0);
+        const tgt = Number(g.targetAmount||0);
+        const yrs = Number(g.investYears||10);
+        if (tgt > 0) {
+          pct = Math.min((cur/tgt)*100, 100);
+          sub = `${fmt(cur)} of ${fmt(tgt)} target · ${yrs}-yr horizon`;
+        } else {
+          const r = 7/100/12, n = yrs*12, mo = Number(g.monthlyContribution||0);
+          const proj = r===0 ? cur+mo*n : cur*Math.pow(1+r,n)+mo*((Math.pow(1+r,n)-1)/r);
+          sub = `${fmt(cur)} now · ~${proj>=1e6?"$"+(proj/1e6).toFixed(1)+"M":"$"+(proj/1e3).toFixed(0)+"K"} projected in ${yrs} yrs`;
+        }
       } else {
         pct=Number(g.targetAmount)?Math.min((Number(g.currentAmount||0)/Number(g.targetAmount))*100,100):0;
         const proj=goalProjection(g);
@@ -2548,7 +2598,10 @@ function renderAnnualView() {
   function renderHomeTab(g) {
     const scenarios=g.scenarios||[{homePrice:225000,downPct:20},{homePrice:245000,downPct:20},{homePrice:265000,downPct:20}];
     const sc=scenarios[activeHomeScenario]||scenarios[0];
-    const current=Number(g.currentSavings||0), netIncome=Number(g.monthlyNetIncome||0);
+    const current=Number(g.currentSavings||0);
+    const todayMonthKey = formatMonthKey(new Date());
+    const monthIncome   = Number(months[activeMonthKey || todayMonthKey]?.meta?.income || 0);
+    const netIncome     = monthIncome || Number(g.monthlyNetIncome||0);
     const rate=Number(g.interestRate??6.25), years=Number(g.loanTermYears??30), hoaFee=Number(g.hoaFee??300);
     const propTaxRate=Number(g.propTaxRate??1.7), hoiRate=Number(g.hoiRate??0.5), pmiRate=Number(g.pmiRate??0.75);
     const lenderTitleRate=Number(g.lenderTitleRate??2.0), appraisal=Number(g.appraisal??600), inspection=Number(g.inspection??500);
@@ -2603,6 +2656,54 @@ function renderAnnualView() {
           <div class="hp-total-row"><span class="hp-total-label">Total Monthly</span><span class="hp-total-value">${fmt(total)}</span></div>
         </div>
       </div>
+
+      <!-- ✅ AFFORDABILITY CARD 1: Monthly payment vs income, all scenarios -->
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">✅ Can I Afford the Payment?</h2></div>
+        <div class="card-body">
+          ${netIncome <= 0
+            ? `<p style="font-size:12px;color:var(--color-text-secondary);margin:0;font-style:italic;">Enter your net income in Inputs below to see affordability.</p>`
+            : (() => {
+                const labels = ["Housing only", "Housing + bills", "Housing + bills + subs"];
+                const deductions = [0, mustPay, mustPay + subsPay];
+                const scLabels = ["A","B","C"];
+
+                // Build per-scenario totals
+                const scTotals = scenarios.map(s => {
+                  const hp = Number(s.homePrice||0), dp = Number(s.downPct||20);
+                  const loan = hp - hp*dp/100;
+                  const scPi  = calcMonthlyPayment(loan, rate, years);
+                  const scPmi = dp < 20 ? loan*pmiRate/100/12 : 0;
+                  return scPi + hp*propTaxRate/100/12 + hp*hoiRate/100/12 + scPmi + hoaFee;
+                });
+
+                // Header row
+                let html = `<div style="display:grid;grid-template-columns:1fr repeat(${scenarios.length},auto);gap:6px 10px;align-items:center;margin-bottom:8px;">`;
+                html += `<div></div>`;
+                scTotals.forEach((t,i) => {
+                  html += `<div style="text-align:center;"><div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--color-text-secondary);">Scenario ${scLabels[i]}</div><div style="font-size:12px;font-weight:700;color:var(--color-primary);">${fmt(t)}/mo</div></div>`;
+                });
+                html += `</div><div style="border-top:1px solid var(--color-border);margin-bottom:10px;"></div>`;
+
+                // Rows
+                labels.forEach((label, li) => {
+                  const ded = deductions[li];
+                  html += `<div style="display:grid;grid-template-columns:1fr repeat(${scenarios.length},auto);gap:4px 10px;align-items:center;margin-bottom:8px;">`;
+                  html += `<div style="font-size:12px;color:var(--color-text-secondary);">${label}</div>`;
+                  scTotals.forEach(t => {
+                    const left = netIncome - ded - t;
+                    const can  = left >= 0;
+                    html += `<div style="text-align:center;font-size:12px;font-weight:700;color:${can?"var(--color-success)":"var(--color-danger)"};">${can?"✅ "+fmt(left):"❌ −"+fmt(Math.abs(left))}</div>`;
+                  });
+                  html += `</div>`;
+                });
+                html += `<p style="font-size:10px;color:var(--color-text-secondary);margin:8px 0 0;line-height:1.5;">Net income: <strong style="color:var(--color-text-primary);">${fmt(netIncome)}/mo</strong> · ✅ = remaining after housing &amp; listed expenses · ❌ = shortfall</p>`;
+                return html;
+              })()
+          }
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><h2 class="card-title">💰 Cash Needed at Closing</h2></div>
         <div class="card-body">
@@ -2621,10 +2722,43 @@ function renderAnnualView() {
           <div class="hp-total-row" style="margin-top:8px;"><span class="hp-total-label">Total Cash Needed</span><span class="hp-total-value">${fmt(totalCash)}</span></div>
         </div>
       </div>
+
+      <!-- ✅ AFFORDABILITY CARD 2: Savings vs cash needed, all scenarios -->
       <div class="card">
-        <div class="card-header"><h2 class="card-title">✅ Can I Afford This?</h2></div>
+        <div class="card-header"><h2 class="card-title">🏦 Am I Ready to Close?</h2></div>
         <div class="card-body">
-          ${netIncome>0?`<p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 10px;line-height:1.5;">${fmt(total)}/mo housing cost vs. ${fmt(netIncome)}/mo net income</p>${affordRow("Housing only",0)}${affordRow("Housing + required bills",mustPay)}${affordRow("Housing + bills + subs",mustPay+subsPay)}`:`<p style="font-size:12px;color:var(--color-text-secondary);margin:0;font-style:italic;">Enter your net income in Inputs below to see affordability.</p>`}
+          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 14px;line-height:1.5;">Your current savings vs. total cash needed (down payment + closing + move-in + reserve) for each scenario.</p>
+          ${scenarios.map((s,i) => {
+            const hp   = Number(s.homePrice||0), dp = Number(s.downPct||20);
+            const loan = hp - hp*dp/100;
+            const scPi  = calcMonthlyPayment(loan, rate, years);
+            const scPmi = dp < 20 ? loan*pmiRate/100/12 : 0;
+            const scTotal = scPi + hp*propTaxRate/100/12 + hp*hoiRate/100/12 + scPmi + hoaFee;
+            const scDown  = hp*dp/100;
+            const scClose = hp*lenderTitleRate/100 + appraisal + inspection + hp*countyTaxRate/100 + hp*stateTaxRate/100 + loan*mortgageTaxRate/100 + hp*prepaidRate/100 + attorneyFees;
+            const scMoveIn= movingCost + utilityDeposits + hp*furnishingsRate/100 + hp*repairsRate/100;
+            const scReserve = scTotal * reserveMonths;
+            const scCash  = scDown + scClose + scMoveIn + scReserve;
+            const scPct   = scCash ? Math.min((current/scCash)*100,100) : 0;
+            const scShort = Math.max(0, scCash - current);
+            const scOver  = Math.max(0, current - scCash);
+            const barColor= scPct>=100?"var(--color-success)":scPct>=60?"var(--color-warning)":"var(--color-primary)";
+            const scLabel = ["A","B","C"][i];
+            return `
+              <div style="margin-bottom:${i<scenarios.length-1?"18px":"0"};">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:13px;font-weight:700;color:var(--color-text-primary);">Scenario ${scLabel} — ${fmt(hp)}</span>
+                  <span style="font-size:11px;color:var(--color-text-secondary);">${dp}% down · ${fmt(scCash)} needed</span>
+                </div>
+                <div class="progress-bar-track" style="height:10px;margin-bottom:5px;">
+                  <div class="progress-bar-fill" style="width:${scPct}%;background:${barColor};border-radius:5px;transition:width .3s;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:11px;color:var(--color-text-secondary);">${fmt(current)} saved · ${scPct.toFixed(0)}% of goal</span>
+                  <span style="font-size:12px;font-weight:800;color:${scOver>0?"var(--color-success)":"var(--color-danger)"};">${scOver>0?"🎉 +"+fmt(scOver)+" surplus":"−"+fmt(scShort)+" to go"}</span>
+                </div>
+              </div>`;
+          }).join("")}
         </div>
       </div>
       <div class="card" style="border-color:rgba(106,166,255,0.18);">
@@ -2634,7 +2768,7 @@ function renderAnnualView() {
         </div>
         ${hpInputsOpen ? `
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-          <div><div class="hp-inputs-group-label">💼 My Numbers</div><div class="hp-inputs-grid-2">${dolField("Current House Savings ($)","hp-currentSavings",current)}${dolField("Monthly Net Income ($)","hp-netIncome",netIncome||"")}</div></div>
+          <div><div class="hp-inputs-group-label">💼 My Numbers</div><div class="hp-inputs-grid-2">${dolField("Current House Savings ($)","hp-currentSavings",current)}<div><label class="hp-input-label">Monthly Net Income ($) <span style="font-size:9px;color:var(--color-primary);font-weight:700;">↔ Monthly tab</span></label><input class="goal-input" id="hp-netIncome" type="number" step="50" min="0" value="${netIncome||""}"><div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;line-height:1.4;">${monthIncome>0?`Auto-filled from ${formatMonthLabelFromKey(activeMonthKey||todayMonthKey)}`:"Enter income in the Monthly tab to auto-fill"}</div></div></div></div>
           <div><div class="hp-inputs-group-label">🏠 Scenarios</div>${scenarios.map((s,i)=>`<div class="hp-scenario-row"><span class="hp-scenario-label">${["A","B","C"][i]}</span><div style="flex:2;"><label class="hp-input-label">Home Price ($)</label><input class="goal-input" type="number" step="5000" id="hp-sc-price-${i}" value="${s.homePrice||225000}"></div><div style="flex:1;"><label class="hp-input-label">Down %</label><input class="goal-input" type="number" step="5" min="3" max="50" id="hp-sc-dpct-${i}" value="${s.downPct||20}"></div></div>`).join("")}</div>
           <div><div class="hp-inputs-group-label">🏦 Loan Terms</div><div class="hp-inputs-grid-3">${pctField("Rate (%)","hp-rate",rate)}${field("Term (yrs)","hp-years",years,'step="5" min="10" max="40"')}${dolField("HOA ($/mo)","hp-hoa",hoaFee)}</div></div>
           <div><div class="hp-inputs-group-label">📅 Monthly Assumptions</div><div class="hp-inputs-grid-3">${pctField("Prop Tax %/yr","hp-propTax",propTaxRate)}${pctField("HOI %/yr","hp-hoi",hoiRate)}${pctField("PMI %/yr","hp-pmi",pmiRate)}</div><div class="hp-inputs-note">PMI applies only when down payment &lt; 20%</div></div>
@@ -2894,18 +3028,296 @@ function renderAnnualView() {
       </div>`;
   }
 
+  function renderDebtTab(g) {
+    const balance   = Number(g.debtBalance  ?? g.currentAmount ?? 0);
+    const origBal   = Number(g.debtOriginal ?? balance);
+    const apr       = Number(g.debtApr      ?? 0);
+    const minPmt    = Number(g.debtMinPmt   ?? 0);
+    const yourPmt   = Number(g.debtYourPmt  ?? minPmt);
+    const monthRate = apr / 100 / 12;
+
+    function monthsTo(bal, rate, pmt) {
+      if (pmt <= 0 || bal <= 0) return null;
+      if (rate === 0) return Math.ceil(bal / pmt);
+      if (pmt <= bal * rate) return null; // never pays off
+      return Math.ceil(-Math.log(1 - (bal * rate) / pmt) / Math.log(1 + rate));
+    }
+    function payoffDate(months) {
+      if (months === null) return "Never (payment too low)";
+      const d = new Date(); d.setMonth(d.getMonth() + months);
+      return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+    }
+    function totalInt(bal, rate, pmt, months) {
+      if (months === null || pmt <= 0) return null;
+      return Math.max(0, pmt * months - bal);
+    }
+    // Balance after N months
+    function balanceAfter(bal, rate, pmt, months) {
+      if (rate === 0) return Math.max(0, bal - pmt * months);
+      let b = bal;
+      for (let i = 0; i < months; i++) {
+        b = b * (1 + rate) - pmt;
+        if (b <= 0) return 0;
+      }
+      return b;
+    }
+
+    const yourMonths  = monthsTo(balance, monthRate, yourPmt);
+    const minMonths   = monthsTo(balance, monthRate, minPmt);
+    const yourInt     = totalInt(balance, monthRate, yourPmt, yourMonths);
+    const minInt      = totalInt(balance, monthRate, minPmt, minMonths);
+    const intSaved    = (yourInt !== null && minInt !== null) ? Math.max(0, minInt - yourInt) : null;
+    const mthsSaved   = (yourMonths !== null && minMonths !== null) ? Math.max(0, minMonths - yourMonths) : null;
+    const paidOff     = Math.max(0, origBal - balance);
+    const pct         = origBal > 0 ? Math.min((paidOff / origBal) * 100, 100) : 0;
+    const barColor    = pct >= 80 ? "var(--color-success)" : pct >= 40 ? "var(--color-warning)" : "var(--color-danger)";
+    const payingExtra = yourPmt > minPmt && minPmt > 0;
+
+    // Amortization snapshot rows
+    const snapYears = [1, 2, 3, 5];
+    const snapRows = snapYears.map(y => {
+      const mo  = y * 12;
+      const bal = balanceAfter(balance, monthRate, yourPmt, mo);
+      const done = bal <= 0;
+      return `<div class="debt-amort-row">
+        <span style="font-size:12px;color:var(--color-text-secondary);">After ${y} yr${y>1?"s":""}</span>
+        <span style="font-size:13px;font-weight:700;color:${done?"var(--color-success)":"var(--color-text-primary)"};">${done?"✅ Paid off!":fmt(bal)}</span>
+      </div>`;
+    }).join("");
+
+    return `
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">⚙️ Your Numbers</h2></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div><label class="goal-field-label">Original Balance ($)</label><input class="goal-input" type="number" step="100" min="0" data-debt="debtOriginal" value="${origBal}" placeholder="0"></div>
+            <div><label class="goal-field-label">Current Balance ($)</label><input class="goal-input" type="number" step="100" min="0" data-debt="debtBalance" value="${balance}" placeholder="0"></div>
+            <div><label class="goal-field-label">Interest Rate (APR %)</label><input class="goal-input" type="number" step="0.01" min="0" data-debt="debtApr" value="${apr}" placeholder="0"></div>
+            <div><label class="goal-field-label">Min Monthly Payment ($)</label><input class="goal-input" type="number" step="10" min="0" data-debt="debtMinPmt" value="${minPmt}" placeholder="0"></div>
+            <div class="full"><label class="goal-field-label">Your Planned Payment ($)</label><input class="goal-input" type="number" step="10" min="0" data-debt="debtYourPmt" value="${yourPmt}" placeholder="0"></div>
+          </div>
+          <button class="btn" style="width:100%;padding:10px;font-size:14px;font-weight:700;" data-goal-action="save-debt" data-id="${g.id}">📊 Update</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">📊 Payoff Status</h2></div>
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+            <span style="font-weight:700;color:var(--color-danger);">${fmt(balance)} remaining</span>
+            <span style="color:var(--color-text-secondary);">${fmt(origBal)} original</span>
+          </div>
+          <div class="progress-bar-track" style="height:10px;margin-bottom:6px;">
+            <div class="progress-bar-fill" style="width:${pct}%;background:${barColor};border-radius:5px;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);">
+            <span>${pct.toFixed(1)}% paid off</span>
+            <span style="color:var(--color-success);">${fmt(paidOff)} paid</span>
+          </div>
+          <div class="stat-grid-2" style="margin-top:14px;">
+            <div class="stat-tile"><div class="stat-tile-label">Current Balance</div><div class="stat-tile-value" style="font-size:18px;color:var(--color-danger);">${fmt(balance)}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Interest Rate</div><div class="stat-tile-value" style="font-size:18px;color:var(--color-warning);">${apr}%</div><div class="stat-tile-sub">APR</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">🗓️ Your Payoff Plan</h2></div>
+        <div class="card-body">
+          ${yourPmt <= 0 ? `<p style="font-size:12px;color:var(--color-text-secondary);margin:0;font-style:italic;">Enter your planned monthly payment above.</p>` : `
+          <div class="stat-grid-2" style="margin-bottom:14px;">
+            <div class="stat-tile"><div class="stat-tile-label">Debt-Free Date</div><div class="stat-tile-value" style="font-size:14px;color:var(--color-primary);line-height:1.2;">${payoffDate(yourMonths)}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Months to Go</div><div class="stat-tile-value" style="color:var(--color-primary);">${yourMonths !== null ? yourMonths : "—"}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Your Payment</div><div class="stat-tile-value" style="font-size:18px;">${fmt(yourPmt)}<span style="font-size:10px;color:var(--color-text-secondary);">/mo</span></div></div>
+            <div class="stat-tile"><div class="stat-tile-label">Total Interest</div><div class="stat-tile-value" style="font-size:18px;color:var(--color-warning);">${yourInt !== null ? fmt(yourInt) : "—"}</div></div>
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:6px;">Balance Over Time</div>
+          ${snapRows}`}
+        </div>
+      </div>
+
+      ${payingExtra ? `
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">⚡ Extra Payment Impact</h2></div>
+        <div class="card-body">
+          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;">Paying <strong style="color:var(--color-success);">${fmt(yourPmt - minPmt)}/mo extra</strong> vs the minimum ${fmt(minPmt)} saves you:</p>
+          <div class="debt-vs-row"><span style="font-size:20px;">⏰</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:var(--color-success);">${mthsSaved !== null ? mthsSaved + " months faster" : "—"}</div><div style="font-size:11px;color:var(--color-text-secondary);">Paid off ${payoffDate(yourMonths)} vs ${payoffDate(minMonths)}</div></div></div>
+          <div class="debt-vs-row"><span style="font-size:20px;">💰</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:var(--color-success);">${intSaved !== null ? fmt(intSaved) + " less interest" : "—"}</div><div style="font-size:11px;color:var(--color-text-secondary);">${fmt(yourInt ?? 0)} total vs ${fmt(minInt ?? 0)} at minimum</div></div></div>
+        </div>
+      </div>` : ""}
+
+      <div style="display:flex;justify-content:center;padding:4px 0 8px;">
+        <button class="admin-btn admin-btn-danger" style="padding:6px 14px;" data-goal-action="delete" data-id="${g.id}">🗑️ Remove Goal</button>
+      </div>`;
+  }
+
+  function renderInvestmentTab(g) {
+    const current     = Number(g.currentAmount     ?? 0);
+    const monthly     = Number(g.monthlyContribution ?? 0);
+    const target      = Number(g.targetAmount      ?? 0);
+    const years       = Number(g.investYears        ?? 10);
+    const hasTarget   = target > 0;
+
+    function fv(principal, mo, rate, yrs) {
+      if (yrs <= 0) return principal;
+      const r = rate / 100 / 12, n = yrs * 12;
+      if (r === 0) return principal + mo * n;
+      return principal * Math.pow(1+r, n) + mo * ((Math.pow(1+r, n) - 1) / r);
+    }
+    function fmtBig(n) {
+      if (n >= 1e6) return "$" + (n/1e6).toFixed(2) + "M";
+      if (n >= 1e3) return "$" + (n/1e3).toFixed(0) + "K";
+      return "$" + Number(n).toFixed(0);
+    }
+
+    const RATES = [
+      { label:"4%",  rate:4,  color:"var(--color-text-secondary)" },
+      { label:"6%",  rate:6,  color:"var(--color-warning)"        },
+      { label:"7%",  rate:7,  color:"var(--color-primary)"        },
+      { label:"8%",  rate:8,  color:"var(--color-success)"        },
+      { label:"10%", rate:10, color:"#fb923c"                     },
+    ];
+
+    const hero7 = fv(current, monthly, 7, years);
+    const totalContrib = current + monthly * years * 12;
+    const growth7 = Math.max(0, hero7 - totalContrib);
+
+    // Build table years: smart set
+    const rowYearSet = new Set([1, 2, 3, 5, 7]);
+    [10, 15, 20, 25, 30].forEach(y => { if (y <= years + 5) rowYearSet.add(y); });
+    rowYearSet.add(years);
+    const rowYears = Array.from(rowYearSet).sort((a, b) => a - b);
+
+    const tableRows = rowYears.map(y => {
+      const isGoal = y === years;
+      return `<tr${isGoal ? ' class="ret-row-retire"' : ''}>
+        <td style="color:${isGoal?"var(--color-primary)":"var(--color-text-secondary)"};font-weight:${isGoal?"700":"400"};white-space:nowrap;">${isGoal?"🎯 ":""}${y} yr${y!==1?"s":""}</td>
+        ${RATES.map(s => {
+          const val = fv(current, monthly, s.rate, y);
+          const hit = hasTarget && val >= target;
+          return `<td style="text-align:right;font-weight:${isGoal?"800":"500"};color:${hit?"var(--color-success)":isGoal?s.color:"var(--color-text-primary)"};">${fmtBig(val)}${hit?" ✓":""}</td>`;
+        }).join("")}
+      </tr>`;
+    }).join("");
+
+    // When does each rate hit the target?
+    const targetRows = hasTarget ? RATES.map(s => {
+      if (current >= target) return `<div class="ret-income-row"><span style="font-size:13px;font-weight:700;color:${s.color};">${s.label}</span><span style="font-size:13px;font-weight:800;color:var(--color-success);">Already there ✅</span></div>`;
+      let yrsNeeded = null;
+      for (let y = 1; y <= 60; y++) { if (fv(current, monthly, s.rate, y) >= target) { yrsNeeded = y; break; } }
+      return `<div class="ret-income-row">
+        <span style="font-size:13px;font-weight:700;color:${s.color};">${s.label} return</span>
+        <span style="font-size:13px;font-weight:800;color:${yrsNeeded !== null ? (yrsNeeded <= years ? "var(--color-success)" : "var(--color-warning)") : "var(--color-danger)"};">${yrsNeeded !== null ? yrsNeeded + " years" : "60+ years"}</span>
+      </div>`;
+    }).join("") : "";
+
+    return `
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">⚙️ Your Numbers</h2></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div><label class="goal-field-label">Current Amount ($)</label><input class="goal-input" type="number" step="500" min="0" data-inv="currentAmount" value="${current}" placeholder="0"></div>
+            <div><label class="goal-field-label">Monthly Contribution ($)</label><input class="goal-input" type="number" step="50" min="0" data-inv="monthlyContribution" value="${monthly}" placeholder="0"></div>
+            <div><label class="goal-field-label">Target Amount (optional $)</label><input class="goal-input" type="number" step="1000" min="0" data-inv="targetAmount" value="${target||""}" placeholder="Leave blank if open-ended"></div>
+            <div><label class="goal-field-label">Time Horizon (years)</label><input class="goal-input" type="number" step="1" min="1" max="50" data-inv="investYears" value="${years}"></div>
+          </div>
+          <button class="btn" style="width:100%;padding:10px;font-size:14px;font-weight:700;" data-goal-action="save-investment" data-id="${g.id}">📊 Update Projections</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📊 ${years}-Year Projection</h2>
+          <span style="font-size:11px;font-weight:600;color:var(--color-primary);background:rgba(106,166,255,0.1);border:1px solid rgba(106,166,255,0.22);border-radius:6px;padding:3px 8px;">7% expected</span>
+        </div>
+        <div class="card-body">
+          <div class="ret-snapshot-hero">
+            <div class="ret-snapshot-label">Projected Value in ${years} Year${years!==1?"s":""}</div>
+            <div class="ret-snapshot-value">${fmtBig(hero7)}</div>
+            ${hasTarget ? `<div class="ret-snapshot-sub" style="color:${hero7>=target?"var(--color-success)":"var(--color-warning)"};">${hero7>=target?"✅ Exceeds":"⚠️ Short of"} your ${fmtBig(target)} target</div>` : ""}
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:4px;display:flex;justify-content:space-between;">
+            <span>Your Contributions</span><span>Market Growth</span>
+          </div>
+          <div class="ret-stacked-bar">
+            <div class="ret-bar-contrib" style="width:${hero7>0?Math.max(3,(totalContrib/hero7)*100):50}%;"></div>
+            <div class="ret-bar-growth"  style="width:${hero7>0?Math.max(3,(growth7/hero7)*100):50}%;"></div>
+          </div>
+          <div class="ret-bar-labels">
+            <span style="color:var(--color-primary);">${fmtBig(totalContrib)}</span>
+            <span style="color:var(--color-success);">${fmtBig(growth7)} growth</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">📈 Growth by Rate of Return</h2></div>
+        <div class="card-body">
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table class="ret-table">
+              <thead><tr>
+                <th style="text-align:left;color:var(--color-text-secondary);"></th>
+                ${RATES.map(s=>`<th style="text-align:right;color:${s.color};">${s.label}</th>`).join("")}
+              </tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+          <p style="font-size:10px;color:var(--color-text-secondary);margin:10px 0 0;line-height:1.4;">Starting with ${fmtBig(current)}, adding ${fmt(monthly)}/mo. ${hasTarget?"✓ marks when target is hit. ":""}Returns compounded monthly.</p>
+        </div>
+      </div>
+
+      ${hasTarget ? `
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">🎯 Years to Hit ${fmtBig(target)}</h2></div>
+        <div class="card-body">${targetRows}</div>
+      </div>` : ""}
+
+      <div style="display:flex;justify-content:center;padding:4px 0 8px;">
+        <button class="admin-btn admin-btn-danger" style="padding:6px 14px;" data-goal-action="delete" data-id="${g.id}">🗑️ Remove Goal</button>
+      </div>`;
+  }
+
   function renderGenericTab(g) {
-    const isEditing=editingGoalId===g.id;
-    const pct=Number(g.targetAmount)?Math.min((Number(g.currentAmount||0)/Number(g.targetAmount))*100,100):0;
-    const color=pct>=100?"var(--color-success)":pct>=80?"var(--color-warning)":"var(--color-primary)";
-    const proj=goalProjection(g);
-    const remaining=Math.max(0,Number(g.targetAmount||0)-Number(g.currentAmount||0));
+    const isEditing  = editingGoalId === g.id;
+    const current    = Number(g.currentAmount || 0);
+    const target     = Number(g.targetAmount  || 0);
+    const pct        = target ? Math.min((current / target) * 100, 100) : 0;
+    const color      = pct>=100?"var(--color-success)":pct>=80?"var(--color-warning)":"var(--color-primary)";
+    const proj       = goalProjection(g);
+    const remaining  = Math.max(0, target - current);
+
+    // Date-locked: compute required monthly savings
+    let dateLockHtml = "";
+    if (g.targetDate) {
+      const [ty, tm] = g.targetDate.split("-").map(Number);
+      const now = new Date();
+      const monthsLeft = Math.max(0, (ty - now.getFullYear()) * 12 + (tm - now.getMonth() - 1));
+      const required = monthsLeft > 0 ? remaining / monthsLeft : remaining;
+      const contrib  = Number(g.monthlyContribution || 0);
+      const onTrack  = contrib >= required;
+      dateLockHtml = `
+        <div style="margin-top:12px;padding:12px 14px;border-radius:10px;background:${onTrack?"rgba(74,222,128,0.07)":"rgba(251,191,36,0.07)"};border:1px solid ${onTrack?"rgba(74,222,128,0.25)":"rgba(251,191,36,0.25)"};">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:${onTrack?"var(--color-success)":"var(--color-warning)"};margin-bottom:4px;">📅 Date-Locked · ${g.targetDate}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+              <div style="font-size:12px;color:var(--color-text-secondary);">Required/mo to hit goal</div>
+              <div style="font-size:18px;font-weight:800;color:${onTrack?"var(--color-success)":"var(--color-warning)"};">${fmt(required)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:var(--color-text-secondary);">Your contribution</div>
+              <div style="font-size:18px;font-weight:800;color:${onTrack?"var(--color-success)":"var(--color-primary)"};">${contrib > 0 ? fmt(contrib) : "—"}</div>
+            </div>
+          </div>
+          ${!onTrack && contrib > 0 ? `<div style="font-size:11px;color:var(--color-warning);margin-top:6px;">⚠️ You need ${fmt(required - contrib)}/mo more to hit your target date</div>` : ""}
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:4px;">${monthsLeft} month${monthsLeft!==1?"s":""} remaining</div>
+        </div>`;
+    }
     return `
       <div class="card">
         <div class="card-header"><h2 class="card-title">${g.icon||"🎯"} Progress</h2></div>
         <div class="card-body">
           <div style="margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="font-weight:700;color:${color};">${fmt(Number(g.currentAmount||0))}</span><span style="color:var(--color-text-secondary);">${fmt(Number(g.targetAmount||0))} goal</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="font-weight:700;color:${color};">${fmt(current)}</span><span style="color:var(--color-text-secondary);">${fmt(target)} goal</span></div>
             <div class="progress-bar-track" style="height:10px;"><div class="progress-bar-fill" style="width:${pct}%;background:${color};border-radius:5px;"></div></div>
             <div style="text-align:center;margin-top:8px;font-size:20px;font-weight:800;color:${color};">${pct.toFixed(1)}%</div>
           </div>
@@ -2915,6 +3327,7 @@ function renderAnnualView() {
             <div class="goal-stat-tile"><div class="goal-stat-label">Projected Completion</div><div class="goal-stat-value" style="font-size:13px;line-height:1.2;">${proj.projectedDate}</div></div>
             <div class="goal-stat-tile"><div class="goal-stat-label">${g.targetDate?"Target Date":"Months to Goal"}</div><div class="goal-stat-value">${g.targetDate?g.targetDate:(proj.monthsLeft!==null?proj.monthsLeft:"—")}</div></div>
           </div>
+          ${dateLockHtml}
           ${g.note?`<div class="goal-note" style="margin-top:12px;">${g.note}</div>`:""}
         </div>
       </div>
@@ -2954,6 +3367,8 @@ function renderAnnualView() {
       if      (g.type==="emergency")  tabContent = renderEmergencyTab(g);
       else if (g.type==="home")       tabContent = renderHomeTab(g);
       else if (g.type==="retirement") tabContent = renderRetirementTab(g);
+      else if (g.type==="debt")       tabContent = renderDebtTab(g);
+      else if (g.type==="investment") tabContent = renderInvestmentTab(g);
       else                            tabContent = renderGenericTab(g);
     }
   }
@@ -2978,44 +3393,125 @@ function renderAnnualView() {
   const formWrap = document.getElementById("newGoalFormWrap");
   if (formWrap) {
     document.getElementById("addGoalBtn")?.addEventListener("click", () => {
+      let selectedType = null;
       let selectedIcon = "🎯";
-      formWrap.innerHTML = `
-        <div class="goal-new-form">
-          <div class="goal-new-form-title">New Goal</div>
-          <label class="goal-field-label">Pick an icon</label>
-          <div class="goal-icon-picker" id="iconPicker">${ICONS.map(ic=>`<span class="goal-icon-opt${ic===selectedIcon?" selected":""}" data-icon="${ic}">${ic}</span>`).join("")}</div>
+
+      const TYPE_DEFS = [
+        { type:"generic",    icon:"🎯", label:"Savings Goal",    sub:"Save toward a target amount",    defaultIcons:["🎯","✈️","🚗","💍","🎓","🏖️","📦","🌴"] },
+        { type:"debt",       icon:"💳", label:"Debt Payoff",      sub:"Pay down a balance over time",   defaultIcons:["💳","🏦","📋","💊","🎓","🏠","🚗","📉"] },
+        { type:"investment", icon:"📈", label:"Investment Goal",  sub:"Grow money with compound returns",defaultIcons:["📈","💼","🌱","🔭","🏦","💡","🌟","🚀"] },
+      ];
+
+      function typeFields(type) {
+        const def = TYPE_DEFS.find(t=>t.type===type);
+        selectedIcon = def?.defaultIcons?.[0] || "🎯";
+        const icons  = (def?.defaultIcons || ICONS);
+        const iconPickerHtml = `
+          <label class="goal-field-label" style="margin-top:10px;">Icon</label>
+          <div class="goal-icon-picker" id="iconPicker">${icons.map(ic=>`<span class="goal-icon-opt${ic===selectedIcon?" selected":""}" data-icon="${ic}">${ic}</span>`).join("")}
+            ${ICONS.filter(i=>!icons.includes(i)).map(ic=>`<span class="goal-icon-opt" data-icon="${ic}">${ic}</span>`).join("")}
+          </div>
           <div class="goal-edit-grid" style="margin-top:6px;">
-            <div class="full"><label class="goal-field-label">Goal Name</label><input class="goal-input" id="newGoalName" type="text" placeholder="e.g. Vacation Fund"></div>
+            <div class="full"><label class="goal-field-label">Goal Name</label><input class="goal-input" id="newGoalName" type="text" placeholder="${type==="debt"?"e.g. Chase Card, Student Loan":type==="investment"?"e.g. Brokerage, 529 Plan":"e.g. Italy Trip, New Car"}"></div>`;
+
+        if (type === "generic") return iconPickerHtml + `
             <div><label class="goal-field-label">Current Saved ($)</label><input class="goal-input" id="newGoalCurrent" type="number" step="0.01" placeholder="0"></div>
             <div><label class="goal-field-label">Target Amount ($)</label><input class="goal-input" id="newGoalTarget" type="number" step="0.01" placeholder="10000"></div>
             <div><label class="goal-field-label">Monthly Contribution ($)</label><input class="goal-input" id="newGoalMonthly" type="number" step="0.01" placeholder="100"></div>
-            <div><label class="goal-field-label">Target Date (optional)</label><input class="goal-input" id="newGoalDate" type="month"></div>
+            <div><label class="goal-field-label">Target Date (optional)</label><input class="goal-input" id="newGoalDate" type="month"><div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">Set a date to see required monthly savings</div></div>
             <div class="full"><label class="goal-field-label">Note (optional)</label><input class="goal-input" id="newGoalNote" type="text" placeholder="Any helpful context"></div>
-          </div>
-          <div class="goal-actions">
-            <button class="admin-btn" id="cancelNewGoal">Cancel</button>
-            <button class="admin-btn admin-btn-success" id="saveNewGoal">＋ Add Goal</button>
-          </div>
-        </div>`;
-      document.getElementById("iconPicker").addEventListener("click", e => {
-        const opt = e.target.closest("[data-icon]"); if (!opt) return;
-        selectedIcon = opt.dataset.icon;
-        document.querySelectorAll(".goal-icon-opt").forEach(el=>el.classList.toggle("selected",el.dataset.icon===selectedIcon));
-      });
-      document.getElementById("cancelNewGoal").addEventListener("click",()=>{ formWrap.innerHTML=""; });
-      document.getElementById("saveNewGoal").addEventListener("click",()=>{
-        const name=document.getElementById("newGoalName").value.trim();
-        if (!name){alert("Please enter a goal name.");return;}
-        const newGoal={id:uid(),type:"generic",name,icon:selectedIcon,
-          currentAmount:Number(document.getElementById("newGoalCurrent").value||0),
-          targetAmount:Number(document.getElementById("newGoalTarget").value||0),
-          monthlyContribution:Number(document.getElementById("newGoalMonthly").value||0),
-          targetDate:document.getElementById("newGoalDate").value||"",
-          note:document.getElementById("newGoalNote").value.trim()};
-        plannerState.goals.push(newGoal);
-        futureActiveTab = newGoal.id;
-        saveState(); renderAnnualView();
-      });
+          </div>`;
+
+        if (type === "debt") return iconPickerHtml + `
+            <div><label class="goal-field-label">Original Balance ($)</label><input class="goal-input" id="newGoalOrigBal" type="number" step="100" placeholder="e.g. 8000"></div>
+            <div><label class="goal-field-label">Current Balance ($)</label><input class="goal-input" id="newGoalCurrent" type="number" step="100" placeholder="e.g. 6500"></div>
+            <div><label class="goal-field-label">Interest Rate (APR %)</label><input class="goal-input" id="newGoalApr" type="number" step="0.01" placeholder="e.g. 19.99"></div>
+            <div><label class="goal-field-label">Min Monthly Payment ($)</label><input class="goal-input" id="newGoalMinPmt" type="number" step="10" placeholder="e.g. 150"></div>
+            <div class="full"><label class="goal-field-label">Your Planned Payment ($)</label><input class="goal-input" id="newGoalYourPmt" type="number" step="10" placeholder="Leave blank to use minimum"></div>
+          </div>`;
+
+        if (type === "investment") return iconPickerHtml + `
+            <div><label class="goal-field-label">Current Amount ($)</label><input class="goal-input" id="newGoalCurrent" type="number" step="500" placeholder="0"></div>
+            <div><label class="goal-field-label">Monthly Contribution ($)</label><input class="goal-input" id="newGoalMonthly" type="number" step="50" placeholder="100"></div>
+            <div><label class="goal-field-label">Target Amount (optional $)</label><input class="goal-input" id="newGoalTarget" type="number" step="1000" placeholder="Leave blank if open-ended"></div>
+            <div><label class="goal-field-label">Time Horizon (years)</label><input class="goal-input" id="newGoalYears" type="number" step="1" min="1" max="50" value="10"></div>
+            <div class="full"><label class="goal-field-label">Note (optional)</label><input class="goal-input" id="newGoalNote" type="text" placeholder="Any helpful context"></div>
+          </div>`;
+        return "";
+      }
+
+      function renderForm() {
+        formWrap.innerHTML = `
+          <div class="goal-new-form">
+            <div class="goal-new-form-title">New Goal</div>
+            <label class="goal-field-label">What kind of goal?</label>
+            <div class="goal-type-grid">
+              ${TYPE_DEFS.map(t=>`
+                <div class="goal-type-tile${selectedType===t.type?" selected":""}" data-pick-type="${t.type}">
+                  <div class="goal-type-icon">${t.icon}</div>
+                  <div class="goal-type-label">${t.label}</div>
+                  <div class="goal-type-sub">${t.sub}</div>
+                </div>`).join("")}
+            </div>
+            <div id="goalTypeFields">${selectedType ? typeFields(selectedType) : ""}</div>
+            <div class="goal-actions" style="margin-top:12px;">
+              <button class="admin-btn" id="cancelNewGoal">Cancel</button>
+              ${selectedType ? `<button class="admin-btn admin-btn-success" id="saveNewGoal">＋ Add Goal</button>` : ""}
+            </div>
+          </div>`;
+
+        formWrap.querySelectorAll("[data-pick-type]").forEach(tile => {
+          tile.addEventListener("click", () => {
+            selectedType = tile.dataset.pickType;
+            renderForm();
+          });
+        });
+        document.getElementById("iconPicker")?.addEventListener("click", e => {
+          const opt = e.target.closest("[data-icon]"); if (!opt) return;
+          selectedIcon = opt.dataset.icon;
+          document.querySelectorAll(".goal-icon-opt").forEach(el => el.classList.toggle("selected", el.dataset.icon===selectedIcon));
+        });
+        document.getElementById("cancelNewGoal")?.addEventListener("click", () => { formWrap.innerHTML = ""; });
+        document.getElementById("saveNewGoal")?.addEventListener("click", () => {
+          const name = document.getElementById("newGoalName")?.value.trim();
+          if (!name) { alert("Please enter a goal name."); return; }
+          let newGoal = { id: uid(), type: selectedType, name, icon: selectedIcon };
+
+          if (selectedType === "generic") {
+            newGoal = { ...newGoal,
+              currentAmount:       Number(document.getElementById("newGoalCurrent")?.value||0),
+              targetAmount:        Number(document.getElementById("newGoalTarget")?.value||0),
+              monthlyContribution: Number(document.getElementById("newGoalMonthly")?.value||0),
+              targetDate:          document.getElementById("newGoalDate")?.value||"",
+              note:                document.getElementById("newGoalNote")?.value.trim()||"" };
+          } else if (selectedType === "debt") {
+            const orig   = Number(document.getElementById("newGoalOrigBal")?.value||0);
+            const bal    = Number(document.getElementById("newGoalCurrent")?.value||0);
+            const minPmt = Number(document.getElementById("newGoalMinPmt")?.value||0);
+            const yourPmt= Number(document.getElementById("newGoalYourPmt")?.value||0);
+            newGoal = { ...newGoal,
+              debtOriginal: orig || bal,
+              debtBalance:  bal,
+              currentAmount: bal,
+              debtApr:      Number(document.getElementById("newGoalApr")?.value||0),
+              debtMinPmt:   minPmt,
+              debtYourPmt:  yourPmt || minPmt };
+          } else if (selectedType === "investment") {
+            newGoal = { ...newGoal,
+              currentAmount:        Number(document.getElementById("newGoalCurrent")?.value||0),
+              monthlyContribution:  Number(document.getElementById("newGoalMonthly")?.value||0),
+              targetAmount:         Number(document.getElementById("newGoalTarget")?.value||0),
+              investYears:          Number(document.getElementById("newGoalYears")?.value||10),
+              note:                 document.getElementById("newGoalNote")?.value.trim()||"" };
+          }
+
+          plannerState.goals.push(newGoal);
+          futureActiveTab = newGoal.id;
+          saveState(); renderAnnualView();
+        });
+      }
+
+      renderForm();
     });
   }
 
@@ -3024,6 +3520,10 @@ function renderAnnualView() {
     if (!g) return;
     const v = id => Number(document.getElementById(id)?.value || 0);
     g.currentSavings=v("hp-currentSavings"); g.monthlyNetIncome=v("hp-netIncome");
+    // Sync net income back to the active month so Monthly tab stays in sync
+    const syncKey = activeMonthKey || formatMonthKey(new Date());
+    ensureMonthExists(syncKey);
+    if (v("hp-netIncome") > 0) months[syncKey].meta.income = v("hp-netIncome");
     g.interestRate=v("hp-rate")||6.25; g.loanTermYears=v("hp-years")||30; g.hoaFee=v("hp-hoa");
     g.propTaxRate=v("hp-propTax")||1.7; g.hoiRate=v("hp-hoi")||0.5; g.pmiRate=v("hp-pmi")||0.75;
     g.lenderTitleRate=v("hp-lenderTitle")||2.0; g.appraisal=v("hp-appraisal"); g.inspection=v("hp-inspection");
@@ -3063,6 +3563,26 @@ function handleFutureClick(e) {
     g.baselineMonths = Number(document.getElementById("efBaselineVal")?.value||3);
     g.goalMonths     = Number(document.getElementById("efGoalVal")?.value||6);
     editingGoalId=null; saveState(); renderAnnualView(); return;
+  }
+  if (action==="save-debt") {
+    const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
+    const av=document.getElementById("annualView");
+    g.debtOriginal = Number(av.querySelector("[data-debt='debtOriginal']")?.value||0);
+    g.debtBalance  = Number(av.querySelector("[data-debt='debtBalance']")?.value||0);
+    g.debtApr      = Number(av.querySelector("[data-debt='debtApr']")?.value||0);
+    g.debtMinPmt   = Number(av.querySelector("[data-debt='debtMinPmt']")?.value||0);
+    g.debtYourPmt  = Number(av.querySelector("[data-debt='debtYourPmt']")?.value||0);
+    g.currentAmount = g.debtBalance;
+    saveState(); renderAnnualView(); return;
+  }
+  if (action==="save-investment") {
+    const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
+    const av=document.getElementById("annualView");
+    g.currentAmount        = Number(av.querySelector("[data-inv='currentAmount']")?.value||0);
+    g.monthlyContribution  = Number(av.querySelector("[data-inv='monthlyContribution']")?.value||0);
+    g.targetAmount         = Number(av.querySelector("[data-inv='targetAmount']")?.value||0);
+    g.investYears          = Number(av.querySelector("[data-inv='investYears']")?.value||10);
+    saveState(); renderAnnualView(); return;
   }
   if (action==="save-retirement") {
     const g=plannerState.goals.find(g=>g.id===id); if(!g)return;
