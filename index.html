@@ -791,6 +791,7 @@ let collapsedAdminSections = new Set(["bills","subs","invsts","disc"]);
 let editingTxId    = null;
 let txFilterCat    = "";
 let txSortOrder    = "newest";
+let txSearch       = "";
 let monthlyViewKey  = null;
 let monthlyViewMode = "monthly";
 let budgetViewKey   = null;
@@ -881,7 +882,8 @@ function progressColor(cls) {
 }
 
 function ensureMonthExists(key) {
-  if (!months[key]) months[key] = { meta: { label: key }, transactions: [] };
+  if (!months[key]) months[key] = { meta: { label: key, incomeSources: [] }, transactions: [] };
+  if (!Array.isArray(months[key].meta.incomeSources)) months[key].meta.incomeSources = [];
 }
 
 function computeActuals(transactions) {
@@ -1408,6 +1410,15 @@ function applyStateObject(state) {
   if (!appSettings.recurringInvestments?.length)    appSettings.recurringInvestments    = DEFAULT_INVESTMENTS.map(i => ({ ...i }));
   if (!appSettings.discretionaryCategories?.length) appSettings.discretionaryCategories = DEFAULT_DISC.map(i => ({ ...i }));
 
+  // Migrate: scalar income → incomeSources array
+  Object.values(months).forEach(mo => {
+    if (!mo.meta) mo.meta = {};
+    if (!Array.isArray(mo.meta.incomeSources)) {
+      const legacy = Number(mo.meta.income || 0);
+      mo.meta.incomeSources = legacy > 0 ? [{ id: uid(), label: "Primary Income", amount: legacy }] : [];
+    }
+  });
+
   // Migrate: upgrade any generic "Retirement" goal to type="retirement"
   if (plannerState.goals) {
     plannerState.goals = plannerState.goals.map(g => {
@@ -1688,12 +1699,48 @@ function renderLogView() {
   ensureMonthExists(activeMonthKey);
   const todayISO = new Date().toISOString().slice(0, 10);
 
+  // ── Due-this-week banner ──
+  const today = new Date();
+  const todayDay = today.getDate();
+  const allBillItems = [...(appSettings.recurringBills || []), ...(appSettings.recurringSubscriptions || [])];
+  const dueSoonItems = allBillItems.filter(item => {
+    if (!item.dueDay) return false;
+    const diff = item.dueDay - todayDay;
+    return diff >= 0 && diff <= 7; // due today through 7 days from now
+  }).sort((a, b) => a.dueDay - b.dueDay);
+  const dueSoonBanner = dueSoonItems.length > 0 ? `
+    <div style="background:rgba(251,191,36,0.07);border-bottom:1px solid rgba(251,191,36,0.2);padding:10px 16px;display:flex;align-items:flex-start;gap:10px;animation:bannerSlide .25s ease;">
+      <span style="font-size:18px;flex-shrink:0;">📆</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);">Bills due in the next 7 days</div>
+        <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:6px;">
+          ${dueSoonItems.map(item => {
+            const diff = item.dueDay - todayDay;
+            const label = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : `${diff}d`;
+            const color = diff === 0 ? "var(--color-danger)" : diff <= 2 ? "var(--color-warning)" : "var(--color-primary)";
+            return `<span style="background:rgba(10,19,38,0.8);border:1px solid rgba(148,163,184,0.2);border-radius:8px;padding:4px 9px;font-size:12px;display:inline-flex;align-items:center;gap:5px;">
+              <span style="font-weight:700;color:${color};">${label}</span>
+              <span style="color:var(--color-text-primary);">${item.name}</span>
+              ${item.budgetAmount ? `<span style="color:var(--color-text-secondary);">${fmt(item.budgetAmount)}</span>` : ""}
+            </span>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>` : "";
+
   const allTxs = Object.entries(months).flatMap(([mk, mo]) =>
     (mo?.transactions || []).map(t => ({ ...t, _monthKey: mk }))
   );
   const usedCats = [...new Set(allTxs.map(t => t.category).filter(Boolean))].sort();
 
-  let filtered = allTxs.filter(t => !txFilterCat || t.category === txFilterCat);
+  let filtered = allTxs.filter(t => {
+    if (txFilterCat && t.category !== txFilterCat) return false;
+    if (txSearch) {
+      const q = txSearch.toLowerCase();
+      if (!t.category.toLowerCase().includes(q) && !(t.note || "").toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
   filtered = [...filtered].sort((a, b) => {
     if (txSortOrder === "newest")      return b.dateISO.localeCompare(a.dateISO) || b.id.localeCompare(a.id);
     if (txSortOrder === "oldest")      return a.dateISO.localeCompare(b.dateISO);
@@ -1707,6 +1754,7 @@ function renderLogView() {
     .slice(0, 5);
 
   container.innerHTML = `
+    ${dueSoonBanner}
     <div class="card">
       <div class="card-header"><h2 class="card-title">Add Transaction</h2></div>
       <div class="card-body">
@@ -1751,6 +1799,9 @@ function renderLogView() {
       </div>
       <div class="card-body">
         <div class="filter-bar">
+          <input id="txSearchInput" type="search" placeholder="🔍 Search notes & categories…"
+            value="${txSearch}"
+            style="flex:1;min-width:160px;background:rgba(255,255,255,0.06);border:1px solid rgba(148,163,184,0.3);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--color-text-primary);font-family:inherit;-webkit-appearance:none;appearance:none;">
           <select id="txFilterCatSelect">
             <option value="">All Categories</option>
             ${usedCats.map(c =>
@@ -1783,6 +1834,7 @@ function renderLogView() {
     editingTxId = null; saveState(); renderLogView();
   });
 
+  document.getElementById("txSearchInput").addEventListener("input", e => { txSearch = e.target.value.trim(); renderLogView(); });
   document.getElementById("txFilterCatSelect").addEventListener("change", e => { txFilterCat = e.target.value; renderLogView(); });
   document.getElementById("txSortSelect").addEventListener("change",      e => { txSortOrder = e.target.value; renderLogView(); });
   container.addEventListener("click",  handleTxClick);
@@ -2164,16 +2216,18 @@ function renderMonthlyView() {
   const fixedOverallPct    = fixedTotalBudget ? Math.min((fixedTotalSpent / fixedTotalBudget) * 100, 100) : 0;
   const fixedOverallCls    = fixedOverallPct >= 100 ? "over" : fixedOverallPct >= 80 ? "warn" : "under";
 
-  // ── Income: stored in months[key].meta.income ──
+  // ── Income: sum of incomeSources array ──
+  function monthIncomeSources(key) { return months[key]?.meta?.incomeSources || []; }
+  function monthIncomeTotal(key)   { return monthIncomeSources(key).reduce((s, src) => s + Number(src.amount || 0), 0); }
   let viewIncome = 0;
   if (isYTD) {
     for (let mo = 1; mo <= ytdEndMonth; mo++) {
       const key = ytdYear + "-" + String(mo).padStart(2, "0");
-      viewIncome += Number(months[key]?.meta?.income || 0);
+      viewIncome += monthIncomeTotal(key);
     }
   } else {
     ensureMonthExists(monthlyViewKey);
-    viewIncome = Number(months[monthlyViewKey].meta.income || 0);
+    viewIncome = monthIncomeTotal(monthlyViewKey);
   }
 
   // ── Prior month actuals for MoM comparison (monthly mode only) ──
@@ -2235,21 +2289,26 @@ function renderMonthlyView() {
       <div class="card-header"><h2 class="card-title">${isYTD?"📋 YTD Snapshot":"📋 Monthly Snapshot"}</h2></div>
       <div class="card-body">
 
-        <!-- Income row — full width, sits above budgeted/spent -->
-        <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.18);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-success);">${isYTD ? "YTD Income" : "Monthly Income"}</span>
-          ${isYTD
-            ? `<span style="font-size:20px;font-weight:800;color:var(--color-success);">${fmt(viewIncome)}</span>`
-            : `<div style="display:flex;align-items:center;gap:4px;">
-                 <span style="font-size:13px;color:var(--color-success);font-weight:700;">$</span>
-                 <input id="incomeInput" type="number" min="0" step="1"
-                   value="${viewIncome > 0 ? viewIncome : ""}"
-                   placeholder="Enter income…"
-                   style="background:none;border:none;border-bottom:1px solid rgba(74,222,128,0.35);
-                          color:var(--color-success);font-size:18px;font-weight:800;text-align:right;
-                          font-family:inherit;outline:none;padding:2px 0;width:140px;
-                          -webkit-appearance:none;appearance:none;" />
-               </div>`}
+        <!-- Income section — multi-source -->
+        <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${isYTD ? "4px" : "10px"};">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-success);">${isYTD ? "YTD Income" : "Monthly Income"}</span>
+            <span style="font-size:20px;font-weight:800;color:var(--color-success);">${fmt(viewIncome)}</span>
+          </div>
+          ${isYTD ? "" : (() => {
+            const sources = months[monthlyViewKey].meta.incomeSources;
+            const sourceRows = sources.map((src, i) => `
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;" data-src-id="${src.id}">
+                <input class="income-src-label" data-src="${src.id}" type="text" value="${src.label}" placeholder="Source name"
+                  style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:7px;padding:5px 8px;font-size:12px;color:var(--color-text-primary);font-family:inherit;min-width:0;">
+                <span style="font-size:13px;color:var(--color-success);font-weight:700;flex-shrink:0;">$</span>
+                <input class="income-src-amount" data-src="${src.id}" type="number" min="0" step="1" value="${src.amount > 0 ? src.amount : ""}" placeholder="0"
+                  style="width:100px;background:rgba(255,255,255,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;color:var(--color-success);font-family:inherit;-webkit-appearance:none;appearance:none;text-align:right;">
+                <button class="income-src-del" data-src="${src.id}" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:4px 7px;font-size:13px;cursor:pointer;flex-shrink:0;">✕</button>
+              </div>`).join("");
+            return `${sourceRows}
+              <button id="incomeAddSourceBtn" style="background:rgba(74,222,128,0.08);border:1px dashed rgba(74,222,128,0.3);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--color-success);cursor:pointer;font-family:inherit;width:100%;margin-top:${sources.length ? "4px":"0"};">+ Add Income Source</button>`;
+          })()}
         </div>
 
         <!-- Budgeted vs Spent tiles -->
@@ -2392,24 +2451,40 @@ function renderMonthlyView() {
     </div>
   `;
 
-  // ── Income input wiring (monthly mode only) ──
-  const incomeInput = document.getElementById("incomeInput");
-  if (incomeInput) {
-    incomeInput.addEventListener("change", () => {
+  // ── Income sources wiring (monthly mode only) ──
+  if (!isYTD) {
+    function saveIncomeSources() {
       ensureMonthExists(monthlyViewKey);
-      months[monthlyViewKey].meta.income = Number(incomeInput.value) || 0;
+      months[monthlyViewKey].meta.incomeSources = months[monthlyViewKey].meta.incomeSources || [];
       saveState();
-      renderMonthlyView();
+    }
+    // Update label on blur
+    container.querySelectorAll(".income-src-label").forEach(inp => {
+      inp.addEventListener("blur", () => {
+        const src = months[monthlyViewKey].meta.incomeSources.find(s => s.id === inp.dataset.src);
+        if (src) { src.label = inp.value.trim() || "Income"; saveState(); }
+      });
     });
-    // Also update live on blur without re-render to avoid focus loss mid-typing
-    incomeInput.addEventListener("blur", () => {
+    // Update amount on input
+    container.querySelectorAll(".income-src-amount").forEach(inp => {
+      inp.addEventListener("change", () => {
+        const src = months[monthlyViewKey].meta.incomeSources.find(s => s.id === inp.dataset.src);
+        if (src) { src.amount = Number(inp.value) || 0; saveIncomeSources(); renderMonthlyView(); }
+      });
+    });
+    // Delete source
+    container.querySelectorAll(".income-src-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        ensureMonthExists(monthlyViewKey);
+        months[monthlyViewKey].meta.incomeSources = months[monthlyViewKey].meta.incomeSources.filter(s => s.id !== btn.dataset.src);
+        saveIncomeSources(); renderMonthlyView();
+      });
+    });
+    // Add new source
+    document.getElementById("incomeAddSourceBtn")?.addEventListener("click", () => {
       ensureMonthExists(monthlyViewKey);
-      const val = Number(incomeInput.value) || 0;
-      if (val !== Number(months[monthlyViewKey].meta.income || 0)) {
-        months[monthlyViewKey].meta.income = val;
-        saveState();
-        renderMonthlyView();
-      }
+      months[monthlyViewKey].meta.incomeSources.push({ id: uid(), label: "Income Source", amount: 0 });
+      saveState(); renderMonthlyView();
     });
   }
 
@@ -2600,7 +2675,8 @@ function renderAnnualView() {
     const sc=scenarios[activeHomeScenario]||scenarios[0];
     const current=Number(g.currentSavings||0);
     const todayMonthKey = formatMonthKey(new Date());
-    const monthIncome   = Number(months[activeMonthKey || todayMonthKey]?.meta?.income || 0);
+    const _hpIncSrcs  = months[activeMonthKey || todayMonthKey]?.meta?.incomeSources || [];
+    const monthIncome   = _hpIncSrcs.reduce((s, src) => s + Number(src.amount || 0), 0);
     const netIncome     = monthIncome || Number(g.monthlyNetIncome||0);
     const rate=Number(g.interestRate??6.25), years=Number(g.loanTermYears??30), hoaFee=Number(g.hoaFee??300);
     const propTaxRate=Number(g.propTaxRate??1.7), hoiRate=Number(g.hoiRate??0.5), pmiRate=Number(g.pmiRate??0.75);
@@ -2788,6 +2864,21 @@ function renderAnnualView() {
     const yearsToRetire  = Math.max(0, retirementAge - currentAge);
     const monthsToRetire = yearsToRetire * 12;
 
+    // ── New: Inflation, account type, Social Security ──
+    const inflationRate  = Number(g.retInflation ?? 2.5);
+    const accountType    = g.retAccountType ?? "pretax";   // pretax | roth | taxable
+    const ssMonthly      = Number(g.retSsMonthly ?? 0);    // SS monthly estimate at full retirement age
+    const ssClaimAge     = Number(g.retSsClaimAge ?? 67);  // 62 | 67 | 70
+
+    // SS adjustment factor: ~6.7% per year before/after 67
+    function ssAdjusted(base, claimAge) {
+      const diff = claimAge - 67;
+      if (diff === 0) return base;
+      if (diff < 0) return base * (1 + diff * 0.067); // early penalty
+      return base * (1 + diff * 0.08);                // delayed credit
+    }
+    const ssMonthlyAdj = ssAdjusted(ssMonthly, ssClaimAge);
+
     // Future value: lump sum + monthly contributions compounded monthly
     function fv(principal, monthly, annualRate, years) {
       if (years <= 0) return principal;
@@ -2795,6 +2886,18 @@ function renderAnnualView() {
       const n = years * 12;
       if (r === 0) return principal + monthly * n;
       return principal * Math.pow(1 + r, n) + monthly * ((Math.pow(1 + r, n) - 1) / r);
+    }
+
+    // Inflation-adjusted (real) value
+    function realValue(nominalBalance, years) {
+      return nominalBalance / Math.pow(1 + inflationRate / 100, years);
+    }
+
+    // After-tax withdrawal estimate (pretax: ~22% federal bracket; roth: 0%; taxable: ~15% cap gains)
+    function afterTaxMonthly(monthly) {
+      if (accountType === "roth")    return monthly;
+      if (accountType === "taxable") return monthly * 0.85;
+      return monthly * 0.78; // pretax default ~22% effective
     }
 
     function fmtBig(n) {
@@ -2855,16 +2958,24 @@ function renderAnnualView() {
       </tr>`;
     }).join("");
 
-    // Income rows at retirement
+    // Income rows at retirement — with inflation-adjusted and after-tax breakdown
     const incomeRows = SCENARIOS.map(s => {
-      const bal     = fv(currentSavings, monthlyContrib, s.rate, yearsToRetire);
-      const monthly = bal * 0.04 / 12;
+      const bal      = fv(currentSavings, monthlyContrib, s.rate, yearsToRetire);
+      const monthly  = bal * 0.04 / 12;
+      const realBal  = realValue(bal, yearsToRetire);
+      const realMo   = realBal * 0.04 / 12;
+      const afterTax = afterTaxMonthly(monthly);
+      const totalMo  = afterTax + ssMonthlyAdj;
       return `<div class="ret-income-row">
-        <div>
+        <div style="flex:1;min-width:0;">
           <span style="font-size:13px;font-weight:700;color:${s.color};">${s.label} return</span>
           <span style="font-size:10px;color:var(--color-text-secondary);margin-left:5px;">→ ${fmtBig(bal)}</span>
+          <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">Real (${inflationRate}% inflation): ${fmtBig(realBal)} → ${fmt(realMo)}/mo</div>
         </div>
-        <span style="font-size:15px;font-weight:800;color:${s.color};">${fmt(monthly)}<span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">/mo</span></span>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:15px;font-weight:800;color:${s.color};">${fmt(afterTax)}<span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">/mo${accountType!=="roth"?" after-tax":""}</span></div>
+          ${ssMonthlyAdj > 0 ? `<div style="font-size:11px;color:var(--color-success);margin-top:2px;">+ ${fmt(ssMonthlyAdj)} SS = <strong>${fmt(totalMo)}/mo</strong></div>` : ""}
+        </div>
       </div>`;
     }).join("");
 
@@ -2932,6 +3043,40 @@ function renderAnnualView() {
               <input class="goal-input" type="number" step="1" min="40" max="90" data-ret="retirementAge" value="${retirementAge}">
             </div>
           </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--color-border);">📊 Modeling Assumptions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div>
+              <label class="goal-field-label">Inflation Rate (%/yr)</label>
+              <input class="goal-input" type="number" step="0.25" min="0" max="10" data-ret="inflation" value="${inflationRate}" placeholder="2.5">
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">Used to show real purchasing power</div>
+            </div>
+            <div>
+              <label class="goal-field-label">Account Type</label>
+              <select class="goal-input" data-ret="accountType">
+                <option value="pretax"  ${accountType==="pretax" ?"selected":""}>Pre-tax (401k / IRA)</option>
+                <option value="roth"    ${accountType==="roth"   ?"selected":""}>Roth (tax-free)</option>
+                <option value="taxable" ${accountType==="taxable"?"selected":""}>Taxable Brokerage</option>
+              </select>
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${accountType==="pretax"?"~22% est. tax on withdrawals":accountType==="roth"?"Withdrawals are tax-free":"~15% est. capital gains tax"}</div>
+            </div>
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:8px;padding-top:4px;border-top:1px solid var(--color-border);">🏛️ Social Security (optional)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div>
+              <label class="goal-field-label">SS Estimate at 67 ($/mo)</label>
+              <input class="goal-input" type="number" step="50" min="0" data-ret="ssMonthly" value="${ssMonthly || ""}" placeholder="0">
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">From SSA.gov My Statement</div>
+            </div>
+            <div>
+              <label class="goal-field-label">Claim Age</label>
+              <select class="goal-input" data-ret="ssClaimAge">
+                <option value="62" ${ssClaimAge===62?"selected":""}>62 (early, reduced)</option>
+                <option value="67" ${ssClaimAge===67?"selected":""}>67 (full benefit)</option>
+                <option value="70" ${ssClaimAge===70?"selected":""}>70 (max, delayed)</option>
+              </select>
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">Adjusted: ${fmt(ssMonthlyAdj)}/mo</div>
+            </div>
+          </div>
           <button class="btn" style="width:100%;padding:10px;font-size:14px;font-weight:700;" data-goal-action="save-retirement" data-id="${g.id}">📊 Update Projections</button>
         </div>
       </div>
@@ -2947,7 +3092,19 @@ function renderAnnualView() {
           <div class="ret-snapshot-hero">
             <div class="ret-snapshot-label">Projected Balance at Age ${retirementAge}</div>
             <div class="ret-snapshot-value">${fmtBig(retBal7)}</div>
-            <div class="ret-snapshot-sub">${yearsToRetire} year${yearsToRetire!==1?"s":""} to go · <strong style="color:var(--color-success);">${fmt(monthlyIncome7)}/mo</strong> income (4% rule)</div>
+            <div class="ret-snapshot-sub">${yearsToRetire} year${yearsToRetire!==1?"s":""} to go · <strong style="color:var(--color-success);">${fmt(monthlyIncome7)}/mo</strong> (4% rule)</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <div style="background:rgba(10,19,38,0.7);border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;text-align:center;">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);margin-bottom:4px;">Real Value (${inflationRate}% inflation)</div>
+              <div style="font-size:17px;font-weight:800;color:var(--color-warning);">${fmtBig(realValue(retBal7, yearsToRetire))}</div>
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">Today's purchasing power</div>
+            </div>
+            <div style="background:rgba(10,19,38,0.7);border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;text-align:center;">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);margin-bottom:4px;">${accountType==="roth"?"Tax-Free Income":accountType==="taxable"?"After Cap Gains":"After-Tax Income"}</div>
+              <div style="font-size:17px;font-weight:800;color:var(--color-success);">${fmt(afterTaxMonthly(monthlyIncome7))}<span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">/mo</span></div>
+              <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${accountType==="pretax"?"~22% tax est.":accountType==="taxable"?"~15% cap gains":"No withdrawal tax"}</div>
+            </div>
           </div>
 
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);margin-bottom:4px;display:flex;justify-content:space-between;">
@@ -3007,7 +3164,7 @@ function renderAnnualView() {
       <div class="card">
         <div class="card-header"><h2 class="card-title">💸 Monthly Income at Retirement</h2></div>
         <div class="card-body">
-          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;">Based on the <strong style="color:var(--color-text-primary);">4% rule</strong> — withdraw 4% of your balance per year. A widely used guideline for a 30+ year retirement.</p>
+          <p style="font-size:11px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;">Based on the <strong style="color:var(--color-text-primary);">4% rule</strong> — withdraw 4% of your balance per year. Figures shown ${accountType==="roth"?"are tax-free (Roth).":accountType==="taxable"?"reflect ~15% capital gains tax.":"reflect ~22% estimated federal income tax on withdrawals."} Inflation-adjusted real values shown below each scenario${ssMonthlyAdj > 0 ? `, plus Social Security (${fmt(ssMonthlyAdj)}/mo at age ${ssClaimAge})` : ""}.</p>
           ${incomeRows}
         </div>
       </div>
@@ -3523,7 +3680,11 @@ function renderAnnualView() {
     // Sync net income back to the active month so Monthly tab stays in sync
     const syncKey = activeMonthKey || formatMonthKey(new Date());
     ensureMonthExists(syncKey);
-    if (v("hp-netIncome") > 0) months[syncKey].meta.income = v("hp-netIncome");
+    if (v("hp-netIncome") > 0) {
+      const syncSrcs = months[syncKey].meta.incomeSources;
+      const primary = syncSrcs.find(s => s.label === "Salary / Primary" || s.label === "Primary Income") || syncSrcs[0];
+      if (primary) { primary.amount = v("hp-netIncome"); } else { months[syncKey].meta.incomeSources.push({ id: uid(), label: "Salary / Primary", amount: v("hp-netIncome") }); }
+    }
     g.interestRate=v("hp-rate")||6.25; g.loanTermYears=v("hp-years")||30; g.hoaFee=v("hp-hoa");
     g.propTaxRate=v("hp-propTax")||1.7; g.hoiRate=v("hp-hoi")||0.5; g.pmiRate=v("hp-pmi")||0.75;
     g.lenderTitleRate=v("hp-lenderTitle")||2.0; g.appraisal=v("hp-appraisal"); g.inspection=v("hp-inspection");
@@ -3591,6 +3752,10 @@ function handleFutureClick(e) {
     g.retMonthlyContrib = Number(av.querySelector("[data-ret='monthlyContrib']")?.value||0);
     g.retCurrentAge     = Number(av.querySelector("[data-ret='currentAge']")?.value||35);
     g.retRetirementAge  = Number(av.querySelector("[data-ret='retirementAge']")?.value||65);
+    g.retInflation      = Number(av.querySelector("[data-ret='inflation']")?.value ?? 2.5);
+    g.retAccountType    = av.querySelector("[data-ret='accountType']")?.value || "pretax";
+    g.retSsMonthly      = Number(av.querySelector("[data-ret='ssMonthly']")?.value || 0);
+    g.retSsClaimAge     = Number(av.querySelector("[data-ret='ssClaimAge']")?.value || 67);
     g.currentAmount       = g.retCurrentSavings;
     g.monthlyContribution = g.retMonthlyContrib;
     saveState(); renderAnnualView(); return;
@@ -3777,6 +3942,13 @@ function renderAdminBudgetItemRow(section, item, isDisc) {
         </div>
 
         ${!isDisc ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <label class="admin-edit-label">Due Day of Month</label>
+            <input class="admin-input admin-edit-dueday" type="number" min="1" max="31" value="${item.dueDay || ""}" placeholder="e.g. 15" style="width:100%;">
+            <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">Day of month bill is due (1–31)</div>
+          </div>
+        </div>
         <label class="admin-toggle-row${splitEnabled ? " active" : ""}" id="splitToggleLabel_${item.id}">
           <input type="checkbox" id="splitCheck_${item.id}" ${splitEnabled ? "checked" : ""} onchange="
             this.closest('.admin-edit-block').querySelector('#splitFields_${item.id}').style.display = this.checked ? 'grid' : 'none';
@@ -3840,6 +4012,9 @@ function renderAdminBudgetItemRow(section, item, isDisc) {
   if (item.annualEnabled) {
     badges.push(`<span class="bill-badge badge-annual-pending" style="font-size:9px;">📅 Annual</span>`);
   }
+  if (item.dueDay) {
+    badges.push(`<span class="bill-badge" style="font-size:9px;background:rgba(106,166,255,0.1);border:1px solid rgba(106,166,255,0.2);border-radius:4px;padding:1px 5px;color:var(--color-primary);">📆 Due ${item.dueDay}${["th","st","nd","rd"][Math.min(item.dueDay%10,3)*(item.dueDay<11||item.dueDay>13?1:0)]||"th"}</span>`);
+  }
   return `
     <div class="admin-item-row" style="flex-wrap:wrap;gap:4px;">
       <div class="admin-item-name" style="flex:1;min-width:0;">
@@ -3872,6 +4047,9 @@ function handleAdminClick(e) {
     const item=getSectionArray(section).find(i=>i.id===id);
     if(item){
       item.name=name; item.budgetAmount=budget;
+      // Due day
+      const dueDayInput = block.querySelector(".admin-edit-dueday");
+      if (dueDayInput) { const d = Number(dueDayInput.value); item.dueDay = (d >= 1 && d <= 31) ? d : null; }
       // Split
       const splitCheck = block.querySelector(`#splitCheck_${id}`);
       if (splitCheck) {
