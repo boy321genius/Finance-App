@@ -2321,7 +2321,7 @@ function renderMonthlyView() {
             <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(fixedTotalBudget)}</div>
             ${isYTD
               ? `<div class="stat-tile-sub">${fmt(fixedMonthlyBudget)}/mo × ${ytdMonthCount}</div>`
-              : `<div class="stat-tile-sub" style="margin-top:4px;font-size:11px;color:var(--color-text-secondary);">&#x1F4B8; <strong style="color:var(--color-primary);">${fmt(fixedMonthlyBudget/2)}</strong>&nbsp;/ paycheck</div>`
+              : `<div class="stat-tile-sub" style="margin-top:4px;font-size:11px;color:var(--color-text-secondary);"><strong style="color:var(--color-primary);">${fmt(fixedMonthlyBudget/2)}</strong>&nbsp;/ paycheck</div>`
             }
           </div>
           <div class="stat-tile">
