@@ -2268,18 +2268,6 @@ function renderMonthlyView() {
     return { name: i.name, curr, prev, budget, delta };
   }).filter(r => r.curr > 0 || r.prev > 0);
 
-  // Combined disc rows: all categories, sorted high → low by current spend
-const discAllRows = disc
-  .map(i => {
-    const curr   = actuals[i.name] || 0;
-    const prev   = isYTD ? 0 : (prevActuals[i.name] || 0);
-    const budget = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
-    const delta  = curr - prev;
-    return { name: i.name, curr, prev, budget, delta };
-  })
-  .filter(r => r.curr > 0 || r.prev > 0)
-  .sort((a, b) => b.curr - a.curr);
-
   const discTotal      = disc.reduce((s, i) => s + (actuals[i.name] || 0), 0);
   const discPrevTotal  = isYTD ? 0 : disc.reduce((s, i) => s + (prevActuals[i.name] || 0), 0);
   const discBudget     = disc.reduce((s, i) => s + Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1), 0);
@@ -2333,7 +2321,7 @@ const discAllRows = disc
             <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(fixedTotalBudget)}</div>
             ${isYTD
               ? `<div class="stat-tile-sub">${fmt(fixedMonthlyBudget)}/mo × ${ytdMonthCount}</div>`
-              : `<div class="stat-tile-sub" style="margin-top:4px;font-size:11px;color:var(--color-text-secondary);"><strong style="color:var(--color-primary);">${fmt(fixedMonthlyBudget/2)}</strong>&nbsp;/ paycheck</div>`
+              : `<div class="stat-tile-sub" style="margin-top:4px;font-size:11px;color:var(--color-text-secondary);">&#x1F4B8; <strong style="color:var(--color-primary);">${fmt(fixedMonthlyBudget/2)}</strong>&nbsp;/ paycheck</div>`
             }
           </div>
           <div class="stat-tile">
@@ -2397,82 +2385,92 @@ const discAllRows = disc
       </div>
     </div>` : ""}
 
-    <!-- ══ DISCRETIONARY DEEP-DIVE CARD ══ -->
+
+    <!-- ══ DISCRETIONARY SPENDING CARD (collapsible) ══ -->
     <div class="card">
-  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h2 class="card-title">🛍️ Discretionary Spending</h2>
-    ${discAllRows.length > 0 ? `<span style="font-size:12px;font-weight:700;color:var(--color-text-secondary);">${fmt(discTotal)}</span>` : ""}
-  </div>
-  <div class="card-body">
-    ${discAllRows.length === 0
-      ? `<p class="text-muted" style="margin:0;">No discretionary spending logged yet.</p>`
-      : (() => {
-          const headerCols = !isYTD ? `1fr 64px 64px 58px 64px` : `1fr 80px 64px`;
-          return `
-            <div style="display:grid;grid-template-columns:${headerCols};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);padding:0 0 6px;border-bottom:1px solid var(--color-border);margin-bottom:2px;">
+      <div class="card-header"><h2 class="card-title">🔍 Discretionary Spending</h2></div>
+      <div class="card-body">
+        ${(() => {
+            if (discDeepDive.length === 0) {
+              return `<p class="text-muted" style="margin:0;">No discretionary spending logged yet.</p>`;
+            }
+            const hCols = !isYTD ? "1fr 64px 64px 58px 64px" : "1fr 80px 64px";
+            function fmtMom(delta) {
+              if (delta === 0) return "\u2014";
+              return (delta > 0 ? "+" : "") + fmt(Math.abs(delta));
+            }
+            function momColor(delta) {
+              return delta > 0 ? "var(--color-danger)" : delta < 0 ? "var(--color-success)" : "var(--color-text-secondary)";
+            }
+            let html = `<div style="display:grid;grid-template-columns:${hCols};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-secondary);padding:0 0 6px;border-bottom:1px solid var(--color-border);margin-bottom:2px;">
               <span>Category</span>
               ${!isYTD ? `<span style="text-align:right;">${formatMonthLabelFromKey(prevMonthKey).split(" ")[0]}</span>` : ""}
               <span style="text-align:right;">${isYTD ? "YTD" : formatMonthLabelFromKey(monthlyViewKey).split(" ")[0]}</span>
               ${!isYTD ? `<span style="text-align:right;">MoM</span>` : ""}
               <span style="text-align:right;">Budget</span>
-            </div>
-            ${discAllRows.map((r, idx) => {
-              const momColor  = r.delta > 0 ? "var(--color-danger)" : r.delta < 0 ? "var(--color-success)" : "var(--color-text-secondary)";
-              const momLabel  = r.delta > 0 ? `+${fmt(r.delta)}` : r.delta < 0 ? `-${fmt(Math.abs(r.delta))}` : "—";
-              const currColor = progressColor(progressClass(r.curr, r.budget));
-              const budgColor = r.curr > r.budget && r.budget > 0 ? "var(--color-danger)" : "var(--color-text-secondary)";
-              const pct = r.budget ? Math.min((r.curr / r.budget) * 100, 100) : 0;
-              const cls = progressClass(r.curr, r.budget);
-              const colId = "disc-col-" + idx;
-              const catTxs = viewTxs
-                .filter(t => t.category === r.name)
-                .sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-              return \`
-                <div style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                  <div data-disc-toggle="\${colId}" style="display:grid;grid-template-columns:\${headerCols};align-items:center;padding:8px 0;cursor:pointer;user-select:none;">
-                    <span style="font-size:12px;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;display:flex;align-items:center;gap:5px;">
-                      <span style="font-size:9px;color:var(--color-text-secondary);transition:transform .2s;display:inline-block;" id="arr-\${colId}">▶</span>
-                      \${r.name}
-                    </span>
-                    \${!isYTD ? \`<span style="font-size:12px;color:var(--color-text-secondary);text-align:right;">\${r.prev > 0 ? fmt(r.prev) : "—"}</span>\` : ""}
-                    <span style="font-size:12px;font-weight:700;color:\${currColor};text-align:right;">\${fmt(r.curr)}</span>
-                    \${!isYTD ? \`<span style="font-size:11px;font-weight:700;color:\${momColor};text-align:right;">\${momLabel}</span>\` : ""}
-                    <span style="font-size:12px;color:\${budgColor};text-align:right;">\${r.budget > 0 ? fmt(r.budget) : "—"}</span>
-                  </div>
-                  \${r.budget > 0 ? \`<div style="margin:-2px 0 6px;"><div class="progress-bar-track"><div class="progress-bar-fill \${cls}" style="width:\${pct}%;"></div></div></div>\` : ""}
-                  <div id="\${colId}" style="display:none;padding:0 0 8px 16px;">
-                    \${catTxs.length === 0
-                      ? \`<p style="font-size:11px;color:var(--color-text-secondary);font-style:italic;margin:0 0 4px;">No entries yet.</p>\`
-                      : catTxs.map(t => \`
-                          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);gap:8px;">
-                            <span style="font-size:11px;color:var(--color-text-secondary);white-space:nowrap;flex-shrink:0;">\${t.dateISO}</span>
-                            <span style="font-size:11px;color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;">\${t.note || ""}</span>
-                            <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);white-space:nowrap;">\${fmt(t.amount)}</span>
-                          </div>\`
-                        ).join("")}
-                  </div>
+            </div>`;
+            discDeepDive.forEach((r, idx) => {
+              const cColor  = progressColor(progressClass(r.curr, r.budget));
+              const bColor  = r.curr > r.budget && r.budget > 0 ? "var(--color-danger)" : "var(--color-text-secondary)";
+              const pct     = r.budget ? Math.min((r.curr / r.budget) * 100, 100) : 0;
+              const cls     = progressClass(r.curr, r.budget);
+              const colId   = "disc-col-" + idx;
+              const catTxs  = viewTxs.filter(t => t.category === r.name).sort((a,b) => b.dateISO.localeCompare(a.dateISO));
+              const entryHTML = catTxs.length === 0
+                ? `<p style="font-size:11px;color:var(--color-text-secondary);font-style:italic;margin:0 0 4px;">No entries yet.</p>`
+                : catTxs.map(t => {
+                    const notePart = t.note ? ` &middot; <em style="font-style:italic;">${t.note}</em>` : "";
+                    return `<div style="display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);gap:8px;">
+                      <span style="font-size:11px;color:var(--color-text-secondary);white-space:nowrap;flex-shrink:0;">${t.dateISO}${notePart}</span>
+                      <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);white-space:nowrap;">${fmt(t.amount)}</span>
+                    </div>`;
+                  }).join("");
+              html += `<div style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                <div data-disc-toggle="${colId}" style="display:grid;grid-template-columns:${hCols};align-items:center;padding:8px 0;cursor:pointer;user-select:none;">
+                  <span style="font-size:12px;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;display:flex;align-items:center;gap:5px;">
+                    <span style="font-size:9px;color:var(--color-text-secondary);transition:transform .2s;display:inline-block;" id="arr-${colId}">&#9654;</span>
+                    ${r.name}
+                  </span>
+                  ${!isYTD ? `<span style="font-size:12px;color:var(--color-text-secondary);text-align:right;">${r.prev > 0 ? fmt(r.prev) : "\u2014"}</span>` : ""}
+                  <span style="font-size:12px;font-weight:700;color:${cColor};text-align:right;">${fmt(r.curr)}</span>
+                  ${!isYTD ? `<span style="font-size:11px;font-weight:700;color:${momColor(r.delta)};text-align:right;">${fmtMom(r.delta)}</span>` : ""}
+                  <span style="font-size:12px;color:${bColor};text-align:right;">${r.budget > 0 ? fmt(r.budget) : "\u2014"}</span>
                 </div>
-              \`;
-            }).join("")}
-          `;
-        })()
-    }
-  </div>
-</div>
+                ${r.budget > 0 ? `<div style="margin:-2px 0 6px;"><div class="progress-bar-track"><div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div></div></div>` : ""}
+                <div id="${colId}" style="display:none;padding:0 0 8px 16px;">${entryHTML}</div>
+              </div>`;
+            });
+            const d  = discTotal - discPrevTotal;
+            html += `<div style="display:grid;grid-template-columns:${hCols};align-items:center;padding:9px 0 2px;border-top:1px solid var(--color-border);margin-top:2px;">
+              <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);">Total</span>
+              ${!isYTD ? `<span style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-align:right;">${discPrevTotal > 0 ? fmt(discPrevTotal) : "\u2014"}</span>` : ""}
+              <span style="font-size:13px;font-weight:800;color:${progressColor(progressClass(discTotal, discBudget))};text-align:right;">${fmt(discTotal)}</span>
+              ${!isYTD ? `<span style="font-size:11px;font-weight:800;color:${momColor(d)};text-align:right;">${fmtMom(d)}</span>` : ""}
+              <span style="font-size:12px;color:var(--color-text-secondary);text-align:right;">${discBudget > 0 ? fmt(discBudget) : "\u2014"}</span>
+            </div>`;
+            return html;
+          })()
+        }
+      </div>
+    </div>
+
+  `;
 
   document.getElementById("modeMonthly").addEventListener("click", () => { monthlyViewMode = "monthly"; renderMonthlyView(); });
   document.getElementById("modeYTD").addEventListener("click",     () => { monthlyViewMode = "ytd";     renderMonthlyView(); });
+
   document.getElementById("monthlyView").addEventListener("click", e => {
-  const toggle = e.target.closest("[data-disc-toggle]");
-  if (!toggle) return;
-  const colId = toggle.dataset.discToggle;
-  const panel = document.getElementById(colId);
-  const arrow = document.getElementById("arr-" + colId);
-  if (!panel) return;
-  const isOpen = panel.style.display !== "none";
-  panel.style.display = isOpen ? "none" : "block";
-  if (arrow) arrow.style.transform = isOpen ? "" : "rotate(90deg)";
-});
+    const btn = e.target.closest("[data-disc-toggle]");
+    if (!btn) return;
+    const colId = btn.dataset.discToggle;
+    const panel = document.getElementById(colId);
+    const arrow = document.getElementById("arr-" + colId);
+    if (!panel) return;
+    const isOpen = panel.style.display !== "none";
+    panel.style.display = isOpen ? "none" : "block";
+    if (arrow) arrow.style.transform = isOpen ? "" : "rotate(90deg)";
+  });
+
 
   document.getElementById("monthNavPrev").addEventListener("click", () => {
     if (isYTD) { monthlyViewKey = (vy-1) + "-" + String(vm).padStart(2,"0"); }
