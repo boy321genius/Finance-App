@@ -2260,13 +2260,14 @@ function renderMonthlyView() {
     .sort((a, b) => b.over - a.over);
 
   // ── Discretionary deep-dive rows (all disc items with any activity) ──
-  const discDeepDive = disc.filter(i => i.name?.toUpperCase() !== "INCOME").map(i => {
-    const curr = actuals[i.name] || 0;
-    const prev = isYTD ? 0 : (prevActuals[i.name] || 0);
-    const budget = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
-    const delta = curr - prev;
-    return { name: i.name, curr, prev, budget, delta };
-  }).filter(r => r.curr > 0 || r.prev > 0);
+  // ── Discretionary deep-dive rows (all disc items with any activity) ──
+const discDeepDive = disc.filter(i => i.name?.toUpperCase() !== "INCOME").map(i => {
+  const curr = actuals[i.name] || 0;
+  const prev = isYTD ? 0 : (prevActuals[i.name] || 0);
+  const budget = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
+  const delta = curr - prev;
+  return { name: i.name, curr, prev, budget, delta };
+}).filter(r => r.curr > 0 || r.prev > 0).sort((a, b) => b.curr - a.curr);
 
   const discTotal = disc.filter(i => i.name?.toUpperCase() !== "INCOME").reduce((s, i) => s + (actuals[i.name] || 0), 0);
   const discPrevTotal = isYTD ? 0 : disc.filter(i => i.name?.toUpperCase() !== "INCOME").reduce((s, i) => s + (prevActuals[i.name] || 0), 0);
