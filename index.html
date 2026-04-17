@@ -2211,7 +2211,11 @@ function renderMonthlyView() {
   const fixedItems         = [...bills, ...subs];
   const fixedMonthlyBudget = fixedItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
   const fixedTotalBudget   = isYTD ? fixedMonthlyBudget * ytdMonthCount : fixedMonthlyBudget;
-  const fixedTotalSpent    = fixedItems.reduce((s, i) => s + (actuals[i.name] || 0), 0);
+  const fixedTotalSpent = fixedItems.reduce((s, i) => {
+    const isAnnual = !!i.annualEnabled;
+    const annualActual = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
+    return s + (isAnnual ? annualActual : (actuals[i.name] || 0));
+    }, 0);
   const fixedRemaining     = fixedTotalBudget - fixedTotalSpent;
   const fixedOverallPct    = fixedTotalBudget ? Math.min((fixedTotalSpent / fixedTotalBudget) * 100, 100) : 0;
   const fixedOverallCls    = fixedOverallPct >= 100 ? "over" : fixedOverallPct >= 80 ? "warn" : "under";
