@@ -2219,7 +2219,7 @@ function renderMonthlyView() {
   // ── Income: sum of "Income" category transactions from Log ──
   function monthIncomeTotal(key) {
     return (months[key]?.transactions || [])
-      .filter(t => t.category === "INCOME")
+      .filter(t => t.category === "Income")
       .reduce((s, t) => s + Number(t.amount || 0), 0);
   }
   let viewIncome = 0;
@@ -2298,17 +2298,17 @@ function renderMonthlyView() {
             <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-success);">${isYTD ? "YTD Income" : "Monthly Income"}</span>
             <span style="font-size:20px;font-weight:800;color:var(--color-success);">${fmt(viewIncome)}</span>
           </div>
-          ${isYTD ? "" : (() => {
-            const incomeTxs = (months[monthlyViewKey]?.transactions || [])
-              .filter(t => t.category === "Income")
+          ${(() => {
+            const incomeTxs = viewTxs
+              .filter(t => t.category?.toUpperCase() === "INCOME")
               .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
             if (incomeTxs.length === 0) {
               return `<div style="font-size:11px;color:var(--color-text-secondary);font-style:italic;">No Income entries logged yet — add them in the Log tab.</div>`;
             }
             return incomeTxs.map(t => `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(74,222,128,0.1);">
-                <span style="font-size:12px;color:var(--color-text-secondary);">${t.dateISO.slice(5).replace("-","/")}${t.note ? ` · <em style="font-style:italic;">${t.note}</em>` : ""}</span>
-                <span style="font-size:12px;font-weight:700;color:var(--color-success);">+${fmt(t.amount)}</span>
+                <span style="font-size:12px;color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;">${t.dateISO}${t.note ? ` · <em style="font-style:italic;">${t.note}</em>` : ""}</span>
+                <span style="font-size:12px;font-weight:700;color:var(--color-success);flex-shrink:0;">+${fmt(t.amount)}</span>
               </div>`).join("");
           })()}
         </div>
