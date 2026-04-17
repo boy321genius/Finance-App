@@ -2260,7 +2260,8 @@ function renderMonthlyView() {
     .sort((a, b) => b.over - a.over);
 
   // ── Discretionary deep-dive rows (all disc items with any activity) ──
-const discDeepDive = disc.filter(i => i.name?.toUpperCase() !== "INCOME").map(i => {    const curr = actuals[i.name] || 0;
+const discDeepDive = disc.filter(i => i.name?.toUpperCase() !== "INCOME").map(i => {    
+  const curr = actuals[i.name] || 0;
     const prev = isYTD ? 0 : (prevActuals[i.name] || 0);
     const budget = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
     const delta = curr - prev;
