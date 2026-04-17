@@ -2317,12 +2317,12 @@ function renderMonthlyView() {
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);margin-bottom:8px;">Income and Spending vs Budget</div>
         <div class="stat-grid-2" style="margin-bottom:14px;">
           <div class="stat-tile">
-            <div class="stat-tile-label">${isYTD?"YTD Budget":"Total Budgeted"}</div>
+            <div class="stat-tile-label">${isYTD?"Budgeted: Must Pays + Subs":"Budgeted: Must Pays + Subs"}</div>
             <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(fixedTotalBudget)}</div>
             ${isYTD?`<div class="stat-tile-sub">${fmt(fixedMonthlyBudget)}/mo × ${ytdMonthCount}</div>`:""}
           </div>
           <div class="stat-tile">
-            <div class="stat-tile-label">${isYTD?"YTD Spent":"Total Spent"}</div>
+            <div class="stat-tile-label">${isYTD?"Actual: Must Pays + Subs":"Actual: Must Pays + Subs"}</div>
             <div class="stat-tile-value" style="color:${progressColor(fixedOverallCls)};">${fmt(fixedTotalSpent)}</div>
           </div>
         </div>
