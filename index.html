@@ -2211,14 +2211,21 @@ function renderMonthlyView() {
   const fixedItems         = [...bills, ...subs];
   const fixedMonthlyBudget = fixedItems.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
   const fixedTotalBudget   = isYTD ? fixedMonthlyBudget * ytdMonthCount : fixedMonthlyBudget;
-  const fixedTotalSpent    = fixedItems.reduce((s, i) => s + (actuals[i.name] || 0), 0);
+  const fixedTotalSpent = fixedItems.reduce((s, i) => {
+    const isAnnual = !!i.annualEnabled;
+    const annualActual = Number(i.budgetAmount || 0) * (isYTD ? ytdMonthCount : 1);
+    return s + (isAnnual ? annualActual : (actuals[i.name] || 0));
+    }, 0);
   const fixedRemaining     = fixedTotalBudget - fixedTotalSpent;
   const fixedOverallPct    = fixedTotalBudget ? Math.min((fixedTotalSpent / fixedTotalBudget) * 100, 100) : 0;
   const fixedOverallCls    = fixedOverallPct >= 100 ? "over" : fixedOverallPct >= 80 ? "warn" : "under";
 
-  // ── Income: sum of incomeSources array ──
-  function monthIncomeSources(key) { return months[key]?.meta?.incomeSources || []; }
-  function monthIncomeTotal(key)   { return monthIncomeSources(key).reduce((s, src) => s + Number(src.amount || 0), 0); }
+  // ── Income: sum of "Income" category transactions from Log ──
+  function monthIncomeTotal(key) {
+    return (months[key]?.transactions || [])
+      .filter(t => t.category?.toUpperCase() === "INCOME")
+      .reduce((s, t) => s + Number(t.amount || 0), 0) ?? 0;
+  }
   let viewIncome = 0;
   if (isYTD) {
     for (let mo = 1; mo <= ytdEndMonth; mo++) {
@@ -2289,25 +2296,24 @@ function renderMonthlyView() {
       <div class="card-header"><h2 class="card-title">${isYTD?"📋 YTD Snapshot":"📋 Monthly Snapshot"}</h2></div>
       <div class="card-body">
 
-        <!-- Income section — multi-source -->
+        <!-- Income section — auto-tracked from Log tab -->
         <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.18);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${isYTD ? "4px" : "10px"};">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-success);">${isYTD ? "YTD Income" : "Monthly Income"}</span>
             <span style="font-size:20px;font-weight:800;color:var(--color-success);">${fmt(viewIncome)}</span>
           </div>
-          ${isYTD ? "" : (() => {
-            const sources = months[monthlyViewKey].meta.incomeSources;
-            const sourceRows = sources.map((src, i) => `
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;" data-src-id="${src.id}">
-                <input class="income-src-label" data-src="${src.id}" type="text" value="${src.label}" placeholder="Source name"
-                  style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:7px;padding:5px 8px;font-size:12px;color:var(--color-text-primary);font-family:inherit;min-width:0;">
-                <span style="font-size:13px;color:var(--color-success);font-weight:700;flex-shrink:0;">$</span>
-                <input class="income-src-amount" data-src="${src.id}" type="number" min="0" step="1" value="${src.amount > 0 ? src.amount : ""}" placeholder="0"
-                  style="width:100px;background:rgba(255,255,255,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:7px;padding:5px 8px;font-size:13px;font-weight:700;color:var(--color-success);font-family:inherit;-webkit-appearance:none;appearance:none;text-align:right;">
-                <button class="income-src-del" data-src="${src.id}" style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:4px 7px;font-size:13px;cursor:pointer;flex-shrink:0;">✕</button>
+          ${(() => {
+            const incomeTxs = viewTxs
+              .filter(t => t.category?.toUpperCase() === "INCOME")
+              .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+            if (incomeTxs.length === 0) {
+              return `<div style="font-size:11px;color:var(--color-text-secondary);font-style:italic;">No Income entries logged yet — add them in the Log tab.</div>`;
+            }
+            return incomeTxs.map(t => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(74,222,128,0.1);">
+                <span style="font-size:12px;color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;">${t.dateISO}${t.note ? ` · <em style="font-style:italic;">${t.note}</em>` : ""}</span>
+                <span style="font-size:12px;font-weight:700;color:var(--color-success);flex-shrink:0;">+${fmt(t.amount)}</span>
               </div>`).join("");
-            return `${sourceRows}
-              <button id="incomeAddSourceBtn" style="background:rgba(74,222,128,0.08);border:1px dashed rgba(74,222,128,0.3);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--color-success);cursor:pointer;font-family:inherit;width:100%;margin-top:${sources.length ? "4px":"0"};">+ Add Income Source</button>`;
           })()}
         </div>
 
@@ -2315,12 +2321,12 @@ function renderMonthlyView() {
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-secondary);margin-bottom:8px;">Income and Spending vs Budget</div>
         <div class="stat-grid-2" style="margin-bottom:14px;">
           <div class="stat-tile">
-            <div class="stat-tile-label">${isYTD?"YTD Budget":"Total Budgeted"}</div>
+            <div class="stat-tile-label">${isYTD?"Budgeted: Must Pays + Subs":"Budgeted: Must Pays + Subs"}</div>
             <div class="stat-tile-value" style="color:var(--color-primary);">${fmt(fixedTotalBudget)}</div>
             ${isYTD?`<div class="stat-tile-sub">${fmt(fixedMonthlyBudget)}/mo × ${ytdMonthCount}</div>`:""}
           </div>
           <div class="stat-tile">
-            <div class="stat-tile-label">${isYTD?"YTD Spent":"Total Spent"}</div>
+            <div class="stat-tile-label">${isYTD?"Actual: Must Pays + Subs":"Actual: Must Pays + Subs"}</div>
             <div class="stat-tile-value" style="color:${progressColor(fixedOverallCls)};">${fmt(fixedTotalSpent)}</div>
           </div>
         </div>
@@ -2450,43 +2456,6 @@ function renderMonthlyView() {
       </div>
     </div>
   `;
-
-  // ── Income sources wiring (monthly mode only) ──
-  if (!isYTD) {
-    function saveIncomeSources() {
-      ensureMonthExists(monthlyViewKey);
-      months[monthlyViewKey].meta.incomeSources = months[monthlyViewKey].meta.incomeSources || [];
-      saveState();
-    }
-    // Update label on blur
-    container.querySelectorAll(".income-src-label").forEach(inp => {
-      inp.addEventListener("blur", () => {
-        const src = months[monthlyViewKey].meta.incomeSources.find(s => s.id === inp.dataset.src);
-        if (src) { src.label = inp.value.trim() || "Income"; saveState(); }
-      });
-    });
-    // Update amount on input
-    container.querySelectorAll(".income-src-amount").forEach(inp => {
-      inp.addEventListener("change", () => {
-        const src = months[monthlyViewKey].meta.incomeSources.find(s => s.id === inp.dataset.src);
-        if (src) { src.amount = Number(inp.value) || 0; saveIncomeSources(); renderMonthlyView(); }
-      });
-    });
-    // Delete source
-    container.querySelectorAll(".income-src-del").forEach(btn => {
-      btn.addEventListener("click", () => {
-        ensureMonthExists(monthlyViewKey);
-        months[monthlyViewKey].meta.incomeSources = months[monthlyViewKey].meta.incomeSources.filter(s => s.id !== btn.dataset.src);
-        saveIncomeSources(); renderMonthlyView();
-      });
-    });
-    // Add new source
-    document.getElementById("incomeAddSourceBtn")?.addEventListener("click", () => {
-      ensureMonthExists(monthlyViewKey);
-      months[monthlyViewKey].meta.incomeSources.push({ id: uid(), label: "Income Source", amount: 0 });
-      saveState(); renderMonthlyView();
-    });
-  }
 
   document.getElementById("modeMonthly").addEventListener("click", () => { monthlyViewMode = "monthly"; renderMonthlyView(); });
   document.getElementById("modeYTD").addEventListener("click",     () => { monthlyViewMode = "ytd";     renderMonthlyView(); });
@@ -2675,8 +2644,10 @@ function renderAnnualView() {
     const sc=scenarios[activeHomeScenario]||scenarios[0];
     const current=Number(g.currentSavings||0);
     const todayMonthKey = formatMonthKey(new Date());
-    const _hpIncSrcs  = months[activeMonthKey || todayMonthKey]?.meta?.incomeSources || [];
-    const monthIncome   = _hpIncSrcs.reduce((s, src) => s + Number(src.amount || 0), 0);
+    const _hpIncomeKey = activeMonthKey || todayMonthKey;
+    const monthIncome  = (months[_hpIncomeKey]?.transactions || [])
+      .filter(t => t.category?.toUpperCase() === "INCOME")
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
     const netIncome     = monthIncome || Number(g.monthlyNetIncome||0);
     const rate=Number(g.interestRate??6.25), years=Number(g.loanTermYears??30), hoaFee=Number(g.hoaFee??300);
     const propTaxRate=Number(g.propTaxRate??1.7), hoiRate=Number(g.hoiRate??0.5), pmiRate=Number(g.pmiRate??0.75);
@@ -2844,7 +2815,7 @@ function renderAnnualView() {
         </div>
         ${hpInputsOpen ? `
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-          <div><div class="hp-inputs-group-label">💼 My Numbers</div><div class="hp-inputs-grid-2">${dolField("Current House Savings ($)","hp-currentSavings",current)}<div><label class="hp-input-label">Monthly Net Income ($) <span style="font-size:9px;color:var(--color-primary);font-weight:700;">↔ Monthly tab</span></label><input class="goal-input" id="hp-netIncome" type="number" step="50" min="0" value="${netIncome||""}"><div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;line-height:1.4;">${monthIncome>0?`Auto-filled from ${formatMonthLabelFromKey(activeMonthKey||todayMonthKey)}`:"Enter income in the Monthly tab to auto-fill"}</div></div></div></div>
+          <div><div class="hp-inputs-group-label">💼 My Numbers</div><div class="hp-inputs-grid-2">${dolField("Current House Savings ($)","hp-currentSavings",current)}<div><label class="hp-input-label">Monthly Net Income ($) <span style="font-size:9px;color:var(--color-primary);font-weight:700;">↔ Log tab</span></label><input class="goal-input" id="hp-netIncome" type="number" step="50" min="0" value="${netIncome||""}"><div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;line-height:1.4;">${monthIncome>0?`Auto-filled from ${formatMonthLabelFromKey(activeMonthKey||todayMonthKey)}`:"Enter Income entries in the Log tab to auto-fill"}</div></div></div></div>
           <div><div class="hp-inputs-group-label">🏠 Scenarios</div>${scenarios.map((s,i)=>`<div class="hp-scenario-row"><span class="hp-scenario-label">${["A","B","C"][i]}</span><div style="flex:2;"><label class="hp-input-label">Home Price ($)</label><input class="goal-input" type="number" step="5000" id="hp-sc-price-${i}" value="${s.homePrice||225000}"></div><div style="flex:1;"><label class="hp-input-label">Down %</label><input class="goal-input" type="number" step="5" min="3" max="50" id="hp-sc-dpct-${i}" value="${s.downPct||20}"></div></div>`).join("")}</div>
           <div><div class="hp-inputs-group-label">🏦 Loan Terms</div><div class="hp-inputs-grid-3">${pctField("Rate (%)","hp-rate",rate)}${field("Term (yrs)","hp-years",years,'step="5" min="10" max="40"')}${dolField("HOA ($/mo)","hp-hoa",hoaFee)}</div></div>
           <div><div class="hp-inputs-group-label">📅 Monthly Assumptions</div><div class="hp-inputs-grid-3">${pctField("Prop Tax %/yr","hp-propTax",propTaxRate)}${pctField("HOI %/yr","hp-hoi",hoiRate)}${pctField("PMI %/yr","hp-pmi",pmiRate)}</div><div class="hp-inputs-note">PMI applies only when down payment &lt; 20%</div></div>
