@@ -2219,8 +2219,8 @@ function renderMonthlyView() {
   // ── Income: sum of "Income" category transactions from Log ──
   function monthIncomeTotal(key) {
     return (months[key]?.transactions || [])
-      .filter(t => t.category === "Income")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .filter(t => t.category?.toUpperCase() === "INCOME")
+      .reduce((s, t) => s + Number(t.amount || 0), 0) ?? 0;
   }
   let viewIncome = 0;
   if (isYTD) {
@@ -2642,7 +2642,7 @@ function renderAnnualView() {
     const todayMonthKey = formatMonthKey(new Date());
     const _hpIncomeKey = activeMonthKey || todayMonthKey;
     const monthIncome  = (months[_hpIncomeKey]?.transactions || [])
-      .filter(t => t.category === "Income")
+      .filter(t => t.category?.toUpperCase() === "INCOME")
       .reduce((s, t) => s + Number(t.amount || 0), 0);
     const netIncome     = monthIncome || Number(g.monthlyNetIncome||0);
     const rate=Number(g.interestRate??6.25), years=Number(g.loanTermYears??30), hoaFee=Number(g.hoaFee??300);
