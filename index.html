@@ -2419,10 +2419,10 @@ function renderMonthlyView() {
               const entryHTML = catTxs.length === 0
                 ? `<p style="font-size:11px;color:var(--color-text-secondary);font-style:italic;margin:0 0 4px;">No entries yet.</p>`
                 : catTxs.map(t => {
-                    const notePart = t.note ? ` &middot; <em style="font-style:italic;">${t.note}</em>` : "";
-                    return `<div style="display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);gap:8px;">
-                      <span style="font-size:11px;color:var(--color-text-secondary);white-space:nowrap;flex-shrink:0;">${t.dateISO}${notePart}</span>
-                      <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);white-space:nowrap;">${fmt(t.amount)}</span>
+                    return `<div style="display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);gap:8px;min-width:0;">
+                      <span style="font-size:11px;color:var(--color-text-secondary);white-space:nowrap;flex-shrink:0;">${t.dateISO}</span>
+                      <span style="font-size:11px;color:var(--color-text-secondary);font-style:italic;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;">${t.note || ""}</span>
+                      <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);white-space:nowrap;flex-shrink:0;">${fmt(t.amount)}</span>
                     </div>`;
                   }).join("");
               html += `<div style="border-bottom:1px solid rgba(255,255,255,0.04);">
@@ -2445,7 +2445,7 @@ function renderMonthlyView() {
               <span style="font-size:12px;font-weight:700;color:var(--color-text-primary);">Total</span>
               ${!isYTD ? `<span style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-align:right;">${discPrevTotal > 0 ? fmt(discPrevTotal) : "\u2014"}</span>` : ""}
               <span style="font-size:12px;font-weight:700;color:${progressColor(progressClass(discTotal, discBudget))};text-align:right;">${fmt(discTotal)}</span>
-              ${!isYTD ? `<span style="font-size:11px;font-weight:700;color:${momColor(d)};text-align:right;">${fmtMom(d)}</span>` : ""}
+              ${!isYTD ? `<span style="font-size:11px;font-weight:800;color:${momColor(d)};text-align:right;">${fmtMom(d)}</span>` : ""}
               <span style="font-size:12px;color:var(--color-text-secondary);text-align:right;">${discBudget > 0 ? fmt(discBudget) : "\u2014"}</span>
             </div>`;
             return html;
