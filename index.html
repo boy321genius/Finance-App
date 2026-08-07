@@ -2405,15 +2405,15 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
       </div>`;
       } else if (g.type === "home") {
     const current = Number(g.currentSavings || 0);
-    const homePrice = Number(g.scenarios?.[0]?.homePrice || 250000);
     const downPct = Number(g.scenarios?.[0]?.downPct || 20);
     const rate = Number(g.interestRate || 6.25);
     const term = Number(g.loanTermYears || 30);
     const hoa = Number(g.hoaFee || 0);
     const propTaxRate = Number(g.propTaxRate || 1.7);
     const hoiRate = Number(g.hoiRate || 0.5);
-    const priceLow = Number(g.priceLow || Math.round(homePrice * 0.85 / 5000) * 5000);
-    const priceHigh = Number(g.priceHigh || Math.round(homePrice * 1.15 / 5000) * 5000);
+    const priceLow = Number(g.priceLow || 200000);
+    const priceHigh = Number(g.priceHigh || 300000);
+    const homePrice = Math.round(((priceLow + priceHigh) / 2) / 1000) * 1000; // midpoint
 
     function calcForPrice(price) {
       const down = price * (downPct / 100);
@@ -2430,8 +2430,8 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     }
 
     const primary = calcForPrice(homePrice);
-    const stillNeeded = Math.max(0, primary.down - current);
-    const pctToGoal = primary.down > 0 ? Math.min((current / primary.down) * 100, 100) : 0;
+const stillNeeded = Math.max(0, primary.cash - current);
+const pctToGoal = primary.cash > 0 ? Math.min((current / primary.cash) * 100, 100) : 0;
 
     // 5 evenly spaced price points
     const pricePoints = [];
@@ -2452,30 +2452,39 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
 
     body = `
       <div class="card">
-        <div class="card-title">Selected target</div>
-        <div class="goal-stat-grid">
-          <div class="goal-stat">
-            <div class="goal-stat-label">Down payment</div>
-            <div class="goal-stat-value text-accent">${fmt(primary.down)}</div>
-          </div>
-          <div class="goal-stat">
-            <div class="goal-stat-label">Still to save</div>
-            <div class="goal-stat-value">${stillNeeded > 0 ? fmt(stillNeeded) : "Done"}</div>
-          </div>
-          <div class="goal-stat">
-            <div class="goal-stat-label">Cash to close</div>
-            <div class="goal-stat-value">${fmt(primary.cash)}</div>
-          </div>
-          <div class="goal-stat">
-            <div class="goal-stat-label">Monthly payment</div>
-            <div class="goal-stat-value">${fmt(primary.monthly)}</div>
-          </div>
-        </div>
-        <div class="progress-track" style="height:8px;margin:14px 0 6px;">
-          <div class="progress-fill ${pctToGoal >= 100 ? "under" : pctToGoal >= 50 ? "warn" : "unset"}" style="width:${pctToGoal}%"></div>
-        </div>
-        <div style="text-align:center;font-size:13px;color:var(--text-2);">${pctToGoal.toFixed(0)}% of down-payment target · ${fmt(current)} saved</div>
-      </div>
+  <div class="card-title">Selected target</div>
+
+  <!-- Primary metrics -->
+  <div class="goal-stat-grid" style="margin-bottom:4px;">
+    <div class="goal-stat">
+      <div class="goal-stat-label">Cash to close</div>
+      <div class="goal-stat-value text-accent" style="font-size:20px;">${fmt(primary.cash)}</div>
+    </div>
+    <div class="goal-stat">
+      <div class="goal-stat-label">Still to save</div>
+      <div class="goal-stat-value" style="font-size:20px;">${stillNeeded > 0 ? fmt(stillNeeded) : "Done"}</div>
+    </div>
+  </div>
+
+  <div class="progress-track" style="height:8px;margin:10px 0 6px;">
+    <div class="progress-fill ${pctToGoal >= 100 ? "under" : pctToGoal >= 50 ? "warn" : "unset"}" style="width:${pctToGoal}%"></div>
+  </div>
+  <div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:14px;">
+    ${pctToGoal.toFixed(0)}% of cash needed · ${fmt(current)} saved
+  </div>
+
+  <!-- Secondary metrics -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;border-top:1px solid var(--border);">
+    <div>
+      <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Down payment</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text-2);">${fmt(primary.down)}</div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">Monthly payment</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text-2);">${fmt(primary.monthly)}</div>
+    </div>
+  </div>
+</div>
 
       <div class="card">
         <div class="card-title">Target home</div>
@@ -2485,13 +2494,9 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
             <input class="form-input" id="homeSavings" type="number" step="500" value="${current}">
           </div>
           <div>
-            <label class="form-label">Home price</label>
-            <input class="form-input" id="homePrice" type="number" step="5000" value="${homePrice}">
-          </div>
-          <div>
-            <label class="form-label">Down payment %</label>
-            <input class="form-input" id="homeDownPct" type="number" step="1" min="0" max="100" value="${downPct}">
-          </div>
+  <label class="form-label">Down payment %</label>
+  <input class="form-input" id="homeDownPct" type="number" step="1" min="0" max="100" value="${downPct}">
+</div>
           <div>
             <label class="form-label">Interest rate %</label>
             <input class="form-input" id="homeRate" type="number" step="0.125" value="${rate}">
@@ -2628,17 +2633,19 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     renderGoalsView();
   });
     document.getElementById("saveHome")?.addEventListener("click", () => {
-    g.currentSavings = Number(document.getElementById("homeSavings")?.value || 0);
-    const price = Number(document.getElementById("homePrice")?.value || 250000);
-    const down = Number(document.getElementById("homeDownPct")?.value || 20);
-    g.scenarios = g.scenarios || [{}];
-    g.scenarios[0] = { ...(g.scenarios[0] || {}), homePrice: price, downPct: down };
-    g.interestRate = Number(document.getElementById("homeRate")?.value || 6.25);
-    g.loanTermYears = Number(document.getElementById("homeTerm")?.value || 30);
-    g.priceLow = Number(document.getElementById("homePriceLow")?.value || price * 0.85);
-    g.priceHigh = Number(document.getElementById("homePriceHigh")?.value || price * 1.15);
-    saveState();
-    renderGoalsView();
+  g.currentSavings = Number(document.getElementById("homeSavings")?.value || 0);
+  const down = Number(document.getElementById("homeDownPct")?.value || 20);
+  const low = Number(document.getElementById("homePriceLow")?.value || 200000);
+  const high = Number(document.getElementById("homePriceHigh")?.value || 300000);
+  const mid = Math.round(((low + high) / 2) / 1000) * 1000;
+  g.priceLow = low;
+  g.priceHigh = high;
+  g.scenarios = g.scenarios || [{}];
+  g.scenarios[0] = { ...(g.scenarios[0] || {}), homePrice: mid, downPct: down };
+  g.interestRate = Number(document.getElementById("homeRate")?.value || 6.25);
+  g.loanTermYears = Number(document.getElementById("homeTerm")?.value || 30);
+  saveState();
+  renderGoalsView();
   });
 }
 
