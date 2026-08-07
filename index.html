@@ -304,17 +304,40 @@
     }
 
     /* ── Budget rows ── */
-    .budget-section { margin-bottom: 20px; }
+    .budget-section { margin-bottom: 22px; }
+    .budget-section:last-child { margin-bottom: 0; }
     .budget-section-header {
-      display: flex; justify-content: space-between; align-items: baseline;
-      margin-bottom: 10px; padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; padding: 10px 12px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
     }
     .budget-section-title {
-      font-size: 13px; font-weight: 600; color: var(--text-2);
+      font-size: 14px; font-weight: 700; color: var(--text);
+      letter-spacing: 0.2px;
     }
     .budget-section-total {
-      font-size: 13px; font-weight: 700; color: var(--text);
+      font-size: 13px; font-weight: 700; color: var(--text-2);
+    }
+
+    .mode-toggle {
+      display: flex; gap: 4px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 3px;
+      margin-bottom: 14px;
+    }
+    .mode-btn {
+      flex: 1; text-align: center;
+      padding: 8px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      border: none; cursor: pointer; font-family: inherit;
+      background: none; color: var(--text-3);
+    }
+    .mode-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent);
     }
     .budget-item {
       padding: 10px 0;
@@ -660,6 +683,7 @@ let txFilterCat    = "";
 let txSortOrder    = "newest";
 let txSearch       = "";
 let showAddForm    = false;
+let budgetViewMode = "month"; // "month" | "year"
 
 const STORAGE_KEY = "financeTrackerState_v1";
 
@@ -1503,7 +1527,10 @@ function renderLogView() {
   ensureMonthExists(activeMonthKey);
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  const allTxs = (months[activeMonthKey].transactions || []).map(t => ({ ...t }));
+  // All transactions across every month
+  const allTxs = Object.entries(months).flatMap(([mk, mo]) =>
+    (mo?.transactions || []).map(t => ({ ...t, _monthKey: mk }))
+  );
 
   // Filter
   let filtered = allTxs;
@@ -1513,7 +1540,9 @@ function renderLogView() {
     filtered = filtered.filter(t =>
       (t.category || "").toLowerCase().includes(q) ||
       (t.note || "").toLowerCase().includes(q) ||
-      String(t.amount || "").includes(q)
+      String(t.amount || "").includes(q) ||
+      (t.dateISO || "").includes(q) ||
+      (t._monthKey || "").includes(q)
     );
   }
 
@@ -1616,7 +1645,7 @@ function renderLogView() {
       </div>
 
       ${filtered.length === 0
-        ? `<div class="empty">${allTxs.length === 0 ? "Nothing logged this month" : "No matches"}</div>`
+        ? `<div class="empty">${allTxs.length === 0 ? "No transactions yet" : "No matches"}</div>`
         : `<ul class="tx-list">
             ${filtered.map(tx => {
               if (editingTxId === tx.id) {
@@ -1630,7 +1659,7 @@ function renderLogView() {
                     </div>
                     <div style="display:flex;gap:8px;justify-content:flex-end;">
                       <button class="btn btn-sm btn-ghost" data-cancel-edit>Cancel</button>
-                      <button class="btn btn-sm" data-save-edit="${tx.id}">Save</button>
+                      <button class="btn btn-sm" data-save-edit="${tx.id}" data-month="${tx._monthKey}">Save</button>
                     </div>
                   </li>`;
               }
@@ -1644,7 +1673,7 @@ function renderLogView() {
                   <div class="tx-amount">${fmt(tx.amount)}</div>
                   <div class="tx-actions">
                     <button class="tx-action" data-edit-tx="${tx.id}">✏️</button>
-                    <button class="tx-action" data-del-tx="${tx.id}">🗑</button>
+                    <button class="tx-action" data-del-tx="${tx.id}" data-month="${tx._monthKey}">🗑</button>
                   </div>
                 </li>`;
             }).join("")}
@@ -1672,13 +1701,11 @@ function renderLogView() {
     renderAll();
   });
 
-  // Search — live filter without full re-render of focus loss
+  // Search — live filter; restore focus after re-render
   const searchEl = document.getElementById("txSearch");
   searchEl?.addEventListener("input", e => {
     txSearch = e.target.value;
-    // Debounce-ish: re-render on input is fine for this list size
     renderLogView();
-    // Restore focus + cursor
     const el = document.getElementById("txSearch");
     if (el) {
       el.focus();
@@ -1706,12 +1733,35 @@ function renderLogView() {
   container.querySelectorAll("[data-save-edit]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.saveEdit;
-      const tx = (months[activeMonthKey].transactions || []).find(t => t.id === id);
-      if (!tx) return;
-      tx.amount = Number(document.getElementById("editAmt")?.value || 0);
-      tx.dateISO = document.getElementById("editDate")?.value || tx.dateISO;
-      tx.category = document.getElementById("editCat")?.value || tx.category;
-      tx.note = document.getElementById("editNote")?.value?.trim() || "";
+      const oldMk = btn.dataset.month;
+      const list = months[oldMk]?.transactions || [];
+      const idx = list.findIndex(t => t.id === id);
+      if (idx === -1) return;
+
+      const newAmount = Number(document.getElementById("editAmt")?.value || 0);
+      const newDate = document.getElementById("editDate")?.value || list[idx].dateISO;
+      const newCat = document.getElementById("editCat")?.value || list[idx].category;
+      const newNote = document.getElementById("editNote")?.value?.trim() || "";
+
+      const [y, m] = (newDate || "").split("-");
+      const newMk = y && m ? `${y}-${m}` : oldMk;
+
+      if (newMk !== oldMk) {
+        // Move to the correct month
+        const [moved] = list.splice(idx, 1);
+        moved.amount = newAmount;
+        moved.dateISO = newDate;
+        moved.category = newCat;
+        moved.note = newNote;
+        ensureMonthExists(newMk);
+        months[newMk].transactions.push(moved);
+      } else {
+        list[idx].amount = newAmount;
+        list[idx].dateISO = newDate;
+        list[idx].category = newCat;
+        list[idx].note = newNote;
+      }
+
       editingTxId = null;
       saveState();
       renderLogView();
@@ -1721,7 +1771,9 @@ function renderLogView() {
     btn.addEventListener("click", () => {
       if (!confirm("Delete this transaction?")) return;
       const id = btn.dataset.delTx;
-      months[activeMonthKey].transactions = (months[activeMonthKey].transactions || []).filter(t => t.id !== id);
+      const mk = btn.dataset.month;
+      if (!months[mk]) return;
+      months[mk].transactions = (months[mk].transactions || []).filter(t => t.id !== id);
       saveState();
       renderLogView();
     });
@@ -1755,15 +1807,32 @@ function renderLogView() {
 function renderBudgetView() {
   const container = document.getElementById("budgetView");
   ensureMonthExists(activeMonthKey);
-  const txs = months[activeMonthKey].transactions || [];
-  const rawActuals = computeActuals(txs);
+
+  const [y, m] = activeMonthKey.split("-").map(Number);
+  const year = String(y);
+  const isYear = budgetViewMode === "year";
+
+  // Months in this year up to (and including) selected month for YTD,
+  // or full year keys that exist when in year mode through selected month
+  const monthKeysInScope = Object.keys(months)
+    .filter(k => k.startsWith(year + "-"))
+    .filter(k => isYear ? k <= activeMonthKey : k === activeMonthKey)
+    .sort();
+
+  // Number of months to multiply budgets by
+  // Month mode → 1; Year mode → months from Jan through selected month
+  const budgetMult = isYear ? m : 1;
+
+  // Aggregate transactions in scope
+  const scopedTxs = monthKeysInScope.flatMap(k => months[k]?.transactions || []);
+  const rawActuals = computeActuals(scopedTxs);
   const allItems = getAllItems();
   const actuals = computeEffectiveActuals(rawActuals, allItems);
   const yearTxs = getYearTxs(activeMonthKey);
 
   function section(title, items) {
     if (!items.length) return "";
-    const totalBudget = items.reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+    const totalBudget = items.reduce((s, i) => s + Number(i.budgetAmount || 0) * budgetMult, 0);
     const totalActual = items.reduce((s, i) => s + (actuals[i.name] || 0), 0);
     return `
       <div class="budget-section">
@@ -1773,7 +1842,7 @@ function renderBudgetView() {
         </div>
         ${items.map(item => {
           const actual = actuals[item.name] || 0;
-          const budget = Number(item.budgetAmount || 0);
+          const budget = Number(item.budgetAmount || 0) * budgetMult;
           const pct = budget ? Math.min((actual / budget) * 100, 100) : 0;
           const cls = progressClass(actual, budget);
           const color = progressColor(cls);
@@ -1796,12 +1865,25 @@ function renderBudgetView() {
   const bills  = appSettings.recurringBills || [];
   const subs   = appSettings.recurringSubscriptions || [];
   const invsts = appSettings.recurringInvestments || [];
-  const disc   = (appSettings.discretionaryCategories || []).filter(i => Number(i.budgetAmount) > 0 || (actuals[i.name] || 0) > 0);
+  const disc   = (appSettings.discretionaryCategories || []).filter(i =>
+    Number(i.budgetAmount) > 0 || (actuals[i.name] || 0) > 0
+  );
+
+  const navLabel = isYear
+    ? `${year} · through ${formatMonthLabelFromKey(activeMonthKey).split(" ")[0]}`
+    : formatMonthLabelFromKey(activeMonthKey);
 
   container.innerHTML = `
+    <div class="mode-toggle">
+      <button class="mode-btn ${!isYear ? "active" : ""}" data-mode="month">Month</button>
+      <button class="mode-btn ${isYear ? "active" : ""}" data-mode="year">Year</button>
+    </div>
+
     <div class="month-nav" style="margin-bottom:14px;">
       <button class="month-nav-btn" id="budPrev">‹</button>
-      <div class="month-nav-label">${formatMonthLabelFromKey(activeMonthKey)}</div>
+      <div>
+        <div class="month-nav-label">${navLabel}</div>
+      </div>
       <button class="month-nav-btn" id="budNext">›</button>
     </div>
 
@@ -1815,15 +1897,32 @@ function renderBudgetView() {
     </div>
   `;
 
-  const [y, m] = activeMonthKey.split("-").map(Number);
+  container.querySelectorAll("[data-mode]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      budgetViewMode = btn.dataset.mode;
+      renderBudgetView();
+    });
+  });
+
   document.getElementById("budPrev")?.addEventListener("click", () => {
-    activeMonthKey = formatMonthKey(new Date(y, m - 2, 1));
+    if (isYear) {
+      // Previous year, keep same month number if possible
+      activeMonthKey = formatMonthKey(new Date(y - 1, m - 1, 1));
+    } else {
+      activeMonthKey = formatMonthKey(new Date(y, m - 2, 1));
+    }
     ensureMonthExists(activeMonthKey);
     renderAll();
   });
   document.getElementById("budNext")?.addEventListener("click", () => {
-    const next = formatMonthKey(new Date(y, m, 1));
-    if (next <= formatMonthKey(new Date())) {
+    const thisKey = formatMonthKey(new Date());
+    let next;
+    if (isYear) {
+      next = formatMonthKey(new Date(y + 1, m - 1, 1));
+    } else {
+      next = formatMonthKey(new Date(y, m, 1));
+    }
+    if (next <= thisKey) {
       activeMonthKey = next;
       ensureMonthExists(activeMonthKey);
       renderAll();
