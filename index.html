@@ -2403,7 +2403,7 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
         </div>
         <button class="btn" id="saveDebt">Update</button>
       </div>`;
-    } else if (g.type === "home") {
+      } else if (g.type === "home") {
     const current = Number(g.currentSavings || 0);
     const homePrice = Number(g.scenarios?.[0]?.homePrice || 250000);
     const downPct = Number(g.scenarios?.[0]?.downPct || 20);
@@ -2412,31 +2412,69 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     const hoa = Number(g.hoaFee || 0);
     const propTaxRate = Number(g.propTaxRate || 1.7);
     const hoiRate = Number(g.hoiRate || 0.5);
+    const priceLow = Number(g.priceLow || Math.round(homePrice * 0.85 / 5000) * 5000);
+    const priceHigh = Number(g.priceHigh || Math.round(homePrice * 1.15 / 5000) * 5000);
 
-    const downPayment = homePrice * (downPct / 100);
-    const loanAmount = homePrice - downPayment;
-    const monthlyRate = rate / 100 / 12;
-    const n = term * 12;
-    const pi = monthlyRate === 0
-      ? loanAmount / n
-      : loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
-    const monthlyTax = (homePrice * (propTaxRate / 100)) / 12;
-    const monthlyIns = (homePrice * (hoiRate / 100)) / 12;
-    const totalMonthly = pi + monthlyTax + monthlyIns + hoa;
-    const closingCosts = homePrice * 0.03;
-    const cashToClose = downPayment + closingCosts;
-    const pctToGoal = downPayment > 0 ? Math.min((current / downPayment) * 100, 100) : 0;
-    const stillNeeded = Math.max(0, downPayment - current);
+    function calcForPrice(price) {
+      const down = price * (downPct / 100);
+      const loan = price - down;
+      const r = rate / 100 / 12;
+      const n = term * 12;
+      const pi = r === 0 ? loan / n
+        : loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      const tax = (price * (propTaxRate / 100)) / 12;
+      const ins = (price * (hoiRate / 100)) / 12;
+      const monthly = pi + tax + ins + hoa;
+      const cash = down + price * 0.03;
+      return { down, monthly, cash };
+    }
+
+    const primary = calcForPrice(homePrice);
+    const stillNeeded = Math.max(0, primary.down - current);
+    const pctToGoal = primary.down > 0 ? Math.min((current / primary.down) * 100, 100) : 0;
+
+    // 5 evenly spaced price points
+    const pricePoints = [];
+    for (let i = 0; i < 5; i++) {
+      pricePoints.push(Math.round((priceLow + (priceHigh - priceLow) * (i / 4)) / 1000) * 1000);
+    }
+
+    const tableRows = pricePoints.map(p => {
+      const c = calcForPrice(p);
+      const isPrimary = Math.abs(p - homePrice) < 1;
+      return `<tr class="${isPrimary ? "ret-row-retire" : ""}">
+        <td>${isPrimary ? "🎯 " : ""}${fmtShort(p)}</td>
+        <td>${fmtShort(c.down)}</td>
+        <td>${fmtShort(c.cash)}</td>
+        <td>${fmtShort(c.monthly)}</td>
+      </tr>`;
+    }).join("");
 
     body = `
-      <div class="card" style="text-align:center;">
-        <div class="card-title">Down-payment progress</div>
-        <div class="hero-number text-accent">${fmt(current)}</div>
-        <div class="hero-label">${stillNeeded > 0 ? fmt(stillNeeded) + " still needed" : "Target reached"}</div>
-        <div class="progress-track" style="height:8px;margin:12px 0 6px;">
+      <div class="card">
+        <div class="card-title">Selected target</div>
+        <div class="goal-stat-grid">
+          <div class="goal-stat">
+            <div class="goal-stat-label">Down payment</div>
+            <div class="goal-stat-value text-accent">${fmt(primary.down)}</div>
+          </div>
+          <div class="goal-stat">
+            <div class="goal-stat-label">Still to save</div>
+            <div class="goal-stat-value">${stillNeeded > 0 ? fmt(stillNeeded) : "Done"}</div>
+          </div>
+          <div class="goal-stat">
+            <div class="goal-stat-label">Cash to close</div>
+            <div class="goal-stat-value">${fmt(primary.cash)}</div>
+          </div>
+          <div class="goal-stat">
+            <div class="goal-stat-label">Monthly payment</div>
+            <div class="goal-stat-value">${fmt(primary.monthly)}</div>
+          </div>
+        </div>
+        <div class="progress-track" style="height:8px;margin:14px 0 6px;">
           <div class="progress-fill ${pctToGoal >= 100 ? "under" : pctToGoal >= 50 ? "warn" : "unset"}" style="width:${pctToGoal}%"></div>
         </div>
-        <div style="font-size:13px;color:var(--text-2);">${pctToGoal.toFixed(0)}% of ${fmt(downPayment)} target</div>
+        <div style="text-align:center;font-size:13px;color:var(--text-2);">${pctToGoal.toFixed(0)}% of down-payment target · ${fmt(current)} saved</div>
       </div>
 
       <div class="card">
@@ -2462,25 +2500,38 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
             <label class="form-label">Loan term (years)</label>
             <input class="form-input" id="homeTerm" type="number" step="1" value="${term}">
           </div>
+          <div>
+            <label class="form-label">Price range low</label>
+            <input class="form-input" id="homePriceLow" type="number" step="5000" value="${priceLow}">
+          </div>
+          <div>
+            <label class="form-label">Price range high</label>
+            <input class="form-input" id="homePriceHigh" type="number" step="5000" value="${priceHigh}">
+          </div>
         </div>
         <button class="btn" id="saveHome" style="margin-top:12px;">Update</button>
       </div>
 
       <div class="card">
-        <div class="card-title">Estimated costs</div>
-        <div class="goal-stat-grid">
-          <div class="goal-stat">
-            <div class="goal-stat-label">Monthly payment</div>
-            <div class="goal-stat-value text-accent">${fmt(totalMonthly)}</div>
-          </div>
-          <div class="goal-stat">
-            <div class="goal-stat-label">Cash to close</div>
-            <div class="goal-stat-value">${fmt(cashToClose)}</div>
-          </div>
+        <div class="card-title">Price scenarios</div>
+        <div style="overflow-x:auto;">
+          <table class="ret-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Price</th>
+                <th>Down</th>
+                <th>Cash to close</th>
+                <th>Monthly</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
         </div>
         <div style="margin-top:10px;font-size:11px;color:var(--text-3);line-height:1.4;">
-          Payment includes principal, interest, property tax, insurance & HOA.
-          Cash to close ≈ down payment + 3% closing costs.
+          Uses your selected down %, rate & term. Cash to close ≈ down payment + 3% closing costs.
+          Monthly includes principal, interest, tax, insurance & HOA.
         </div>
       </div>
     `;
@@ -2576,11 +2627,6 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     saveState();
     renderGoalsView();
   });
-  document.getElementById("saveHome")?.addEventListener("click", () => {
-    g.currentSavings = Number(document.getElementById("homeSavings")?.value || 0);
-    saveState();
-    renderGoalsView();
-  });
     document.getElementById("saveHome")?.addEventListener("click", () => {
     g.currentSavings = Number(document.getElementById("homeSavings")?.value || 0);
     const price = Number(document.getElementById("homePrice")?.value || 250000);
@@ -2589,6 +2635,8 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     g.scenarios[0] = { ...(g.scenarios[0] || {}), homePrice: price, downPct: down };
     g.interestRate = Number(document.getElementById("homeRate")?.value || 6.25);
     g.loanTermYears = Number(document.getElementById("homeTerm")?.value || 30);
+    g.priceLow = Number(document.getElementById("homePriceLow")?.value || price * 0.85);
+    g.priceHigh = Number(document.getElementById("homePriceHigh")?.value || price * 1.15);
     saveState();
     renderGoalsView();
   });
