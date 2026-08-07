@@ -2416,18 +2416,20 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     const homePrice = Math.round(((priceLow + priceHigh) / 2) / 1000) * 1000; // midpoint
 
     function calcForPrice(price) {
-      const down = price * (downPct / 100);
-      const loan = price - down;
-      const r = rate / 100 / 12;
-      const n = term * 12;
-      const pi = r === 0 ? loan / n
-        : loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-      const tax = (price * (propTaxRate / 100)) / 12;
-      const ins = (price * (hoiRate / 100)) / 12;
-      const monthly = pi + tax + ins + hoa;
-      const cash = down + price * 0.03;
-      return { down, monthly, cash };
-    }
+  const down = price * (downPct / 100);
+  const loan = price - down;
+  const r = rate / 100 / 12;
+  const n = term * 12;
+  const pi = r === 0
+    ? loan / n
+    : loan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  const tax = (price * (propTaxRate / 100)) / 12;
+  const ins = (price * (hoiRate / 100)) / 12;
+  const pmi = downPct < 20 ? (loan * 0.0075) / 12 : 0; // 0.75% annual
+  const monthly = pi + tax + ins + hoa + pmi;
+  const cash = down + price * 0.03;
+  return { down, monthly, cash };
+}
 
     const primary = calcForPrice(homePrice);
 const stillNeeded = Math.max(0, primary.cash - current);
