@@ -2403,21 +2403,87 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
         </div>
         <button class="btn" id="saveDebt">Update</button>
       </div>`;
-  } else if (g.type === "home") {
+    } else if (g.type === "home") {
     const current = Number(g.currentSavings || 0);
+    const homePrice = Number(g.scenarios?.[0]?.homePrice || 250000);
+    const downPct = Number(g.scenarios?.[0]?.downPct || 20);
+    const rate = Number(g.interestRate || 6.25);
+    const term = Number(g.loanTermYears || 30);
+    const hoa = Number(g.hoaFee || 0);
+    const propTaxRate = Number(g.propTaxRate || 1.7);
+    const hoiRate = Number(g.hoiRate || 0.5);
+
+    const downPayment = homePrice * (downPct / 100);
+    const loanAmount = homePrice - downPayment;
+    const monthlyRate = rate / 100 / 12;
+    const n = term * 12;
+    const pi = monthlyRate === 0
+      ? loanAmount / n
+      : loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+    const monthlyTax = (homePrice * (propTaxRate / 100)) / 12;
+    const monthlyIns = (homePrice * (hoiRate / 100)) / 12;
+    const totalMonthly = pi + monthlyTax + monthlyIns + hoa;
+    const closingCosts = homePrice * 0.03;
+    const cashToClose = downPayment + closingCosts;
+    const pctToGoal = downPayment > 0 ? Math.min((current / downPayment) * 100, 100) : 0;
+    const stillNeeded = Math.max(0, downPayment - current);
+
     body = `
       <div class="card" style="text-align:center;">
-        <div class="card-title">Home savings</div>
+        <div class="card-title">Down-payment progress</div>
         <div class="hero-number text-accent">${fmt(current)}</div>
-        <div class="hero-label">Current down-payment savings</div>
+        <div class="hero-label">${stillNeeded > 0 ? fmt(stillNeeded) + " still needed" : "Target reached"}</div>
+        <div class="progress-track" style="height:8px;margin:12px 0 6px;">
+          <div class="progress-fill ${pctToGoal >= 100 ? "under" : pctToGoal >= 50 ? "warn" : "unset"}" style="width:${pctToGoal}%"></div>
+        </div>
+        <div style="font-size:13px;color:var(--text-2);">${pctToGoal.toFixed(0)}% of ${fmt(downPayment)} target</div>
       </div>
+
       <div class="card">
-        <div class="card-title">Update savings</div>
-        <label class="form-label">Current house savings ($)</label>
-        <input class="form-input" id="homeSavings" type="number" step="500" value="${current}" style="margin-bottom:12px;">
-        <button class="btn" id="saveHome">Save</button>
+        <div class="card-title">Target home</div>
+        <div class="input-grid-2">
+          <div class="full">
+            <label class="form-label">Current savings</label>
+            <input class="form-input" id="homeSavings" type="number" step="500" value="${current}">
+          </div>
+          <div>
+            <label class="form-label">Home price</label>
+            <input class="form-input" id="homePrice" type="number" step="5000" value="${homePrice}">
+          </div>
+          <div>
+            <label class="form-label">Down payment %</label>
+            <input class="form-input" id="homeDownPct" type="number" step="1" min="0" max="100" value="${downPct}">
+          </div>
+          <div>
+            <label class="form-label">Interest rate %</label>
+            <input class="form-input" id="homeRate" type="number" step="0.125" value="${rate}">
+          </div>
+          <div>
+            <label class="form-label">Loan term (years)</label>
+            <input class="form-input" id="homeTerm" type="number" step="1" value="${term}">
+          </div>
+        </div>
+        <button class="btn" id="saveHome" style="margin-top:12px;">Update</button>
       </div>
-      <p class="text-muted" style="text-align:center;font-size:12px;">Full home-purchase calculator available in a future update of this simplified view.</p>`;
+
+      <div class="card">
+        <div class="card-title">Estimated costs</div>
+        <div class="goal-stat-grid">
+          <div class="goal-stat">
+            <div class="goal-stat-label">Monthly payment</div>
+            <div class="goal-stat-value text-accent">${fmt(totalMonthly)}</div>
+          </div>
+          <div class="goal-stat">
+            <div class="goal-stat-label">Cash to close</div>
+            <div class="goal-stat-value">${fmt(cashToClose)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-3);line-height:1.4;">
+          Payment includes principal, interest, property tax, insurance & HOA.
+          Cash to close ≈ down payment + 3% closing costs.
+        </div>
+      </div>
+    `;
   } else {
     // Generic / investment
     const current = Number(g.currentAmount || 0);
@@ -2515,10 +2581,14 @@ const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
     saveState();
     renderGoalsView();
   });
-  document.getElementById("saveGen")?.addEventListener("click", () => {
-    g.currentAmount = Number(document.getElementById("genCurrent")?.value || 0);
-    g.targetAmount = Number(document.getElementById("genTarget")?.value || 0);
-    g.monthlyContribution = Number(document.getElementById("genMonthly")?.value || 0);
+    document.getElementById("saveHome")?.addEventListener("click", () => {
+    g.currentSavings = Number(document.getElementById("homeSavings")?.value || 0);
+    const price = Number(document.getElementById("homePrice")?.value || 250000);
+    const down = Number(document.getElementById("homeDownPct")?.value || 20);
+    g.scenarios = g.scenarios || [{}];
+    g.scenarios[0] = { ...(g.scenarios[0] || {}), homePrice: price, downPct: down };
+    g.interestRate = Number(document.getElementById("homeRate")?.value || 6.25);
+    g.loanTermYears = Number(document.getElementById("homeTerm")?.value || 30);
     saveState();
     renderGoalsView();
   });
