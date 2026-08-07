@@ -1503,20 +1503,34 @@ function renderLogView() {
   ensureMonthExists(activeMonthKey);
   const todayISO = new Date().toISOString().slice(0, 10);
 
-  const allTxs = (months[activeMonthKey].transactions || [])
-    .map(t => ({ ...t }))
-    .sort((a, b) => {
-      if (txSortOrder === "newest") return (b.dateISO || "").localeCompare(a.dateISO || "");
-      return (a.dateISO || "").localeCompare(b.dateISO || "");
-    });
+  const allTxs = (months[activeMonthKey].transactions || []).map(t => ({ ...t }));
 
+  // Filter
   let filtered = allTxs;
   if (txFilterCat) filtered = filtered.filter(t => t.category === txFilterCat);
+  if (txSearch) {
+    const q = txSearch.toLowerCase();
+    filtered = filtered.filter(t =>
+      (t.category || "").toLowerCase().includes(q) ||
+      (t.note || "").toLowerCase().includes(q) ||
+      String(t.amount || "").includes(q)
+    );
+  }
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (txSortOrder === "oldest") return (a.dateISO || "").localeCompare(b.dateISO || "");
+    if (txSortOrder === "amount-high") return Number(b.amount || 0) - Number(a.amount || 0);
+    if (txSortOrder === "amount-low") return Number(a.amount || 0) - Number(b.amount || 0);
+    // newest (default)
+    return (b.dateISO || "").localeCompare(a.dateISO || "");
+  });
 
   const cats = [...new Set(allTxs.map(t => t.category).filter(Boolean))].sort();
+  const incomeSources = months[activeMonthKey].meta.incomeSources || [];
 
   container.innerHTML = `
-    <!-- Add form (collapsed by default for calm) -->
+    <!-- Add form (collapsed by default) -->
     ${showAddForm ? `
       <div class="card">
         <div class="card-header-row">
@@ -1546,43 +1560,63 @@ function renderLogView() {
         </div>
       </div>
     ` : `
-      <button class="btn" id="showAddBtn" style="margin-bottom:16px;">＋ Log a transaction</button>
+      <button class="btn" id="showAddBtn" style="margin-bottom:14px;">＋ Log a transaction</button>
     `}
 
-    <!-- Quick unpaid (items with due dates only) -->
-    ${(() => {
-      const unpaid = getUnpaidRecurring(activeMonthKey);
-      if (unpaid.length === 0 || showAddForm) return "";
-      return `
-        <div class="card">
-          <div class="card-title">Quick-log unpaid</div>
-          <div class="unpaid-list">
-            ${unpaid.slice(0, 6).map(item => `
-              <div class="unpaid-row">
-                <div class="unpaid-info">
-                  <div class="unpaid-name">${item.name}</div>
-                  <div class="unpaid-meta">Due day ${item.dueDay}</div>
-                </div>
-                <button class="unpaid-btn" data-quick-log="${item.name}" data-amount="${item.budgetAmount}">
-                  ${fmt(item.budgetAmount)}
-                </button>
-              </div>
-            `).join("")}
-          </div>
-        </div>`;
-    })()}
-
-    <!-- Filter + list -->
+    <!-- Income (above transactions) -->
     <div class="card">
       <div class="card-header-row">
-        <div class="card-title" style="margin:0">${filtered.length} transaction${filtered.length !== 1 ? "s" : ""}</div>
-        <select class="form-select" id="txFilter" style="width:auto;padding:6px 10px;font-size:12px;">
-          <option value="">All categories</option>
-          ${cats.map(c => `<option value="${c}" ${c === txFilterCat ? "selected" : ""}>${c}</option>`).join("")}
-        </select>
+        <div class="card-title" style="margin:0">Income this month</div>
+        <span class="text-accent" style="font-weight:700">${fmt(getMonthIncome(activeMonthKey))}</span>
       </div>
+      ${incomeSources.length === 0
+        ? `<div class="text-muted" style="margin-bottom:10px;font-size:13px;">No income entered</div>`
+        : incomeSources.map(src => `
+            <div class="settings-row">
+              <span class="settings-label">${src.label || "Income"}</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="settings-value">${fmt(src.amount)}</span>
+                <button class="tx-action" data-del-income="${src.id}" title="Remove">🗑</button>
+              </div>
+            </div>
+          `).join("")
+      }
+      <div class="input-grid-2" style="margin-top:6px;">
+        <div>
+          <input class="form-input" id="incomeLabel" type="text" placeholder="Label" value="Salary">
+        </div>
+        <div>
+          <input class="form-input" id="incomeAmount" type="number" step="0.01" placeholder="Amount">
+        </div>
+      </div>
+      <button class="btn btn-sm btn-ghost" id="addIncomeBtn" style="margin-top:10px;width:100%;">＋ Add income</button>
+    </div>
+
+    <!-- Transactions -->
+    <div class="card">
+      <div class="card-header-row" style="margin-bottom:12px;">
+        <div class="card-title" style="margin:0">${filtered.length} transaction${filtered.length !== 1 ? "s" : ""}</div>
+      </div>
+
+      <!-- Compact controls -->
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <input class="form-input" id="txSearch" type="search" placeholder="Search category, note, amount…" value="${txSearch || ""}" style="padding:10px 12px;font-size:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <select class="form-select" id="txFilter" style="padding:9px 10px;font-size:13px;">
+            <option value="">All categories</option>
+            ${cats.map(c => `<option value="${c}" ${c === txFilterCat ? "selected" : ""}>${c}</option>`).join("")}
+          </select>
+          <select class="form-select" id="txSort" style="padding:9px 10px;font-size:13px;">
+            <option value="newest" ${txSortOrder === "newest" ? "selected" : ""}>Newest first</option>
+            <option value="oldest" ${txSortOrder === "oldest" ? "selected" : ""}>Oldest first</option>
+            <option value="amount-high" ${txSortOrder === "amount-high" ? "selected" : ""}>Amount high → low</option>
+            <option value="amount-low" ${txSortOrder === "amount-low" ? "selected" : ""}>Amount low → high</option>
+          </select>
+        </div>
+      </div>
+
       ${filtered.length === 0
-        ? `<div class="empty">Nothing logged this month</div>`
+        ? `<div class="empty">${allTxs.length === 0 ? "Nothing logged this month" : "No matches"}</div>`
         : `<ul class="tx-list">
             ${filtered.map(tx => {
               if (editingTxId === tx.id) {
@@ -1617,32 +1651,6 @@ function renderLogView() {
           </ul>`
       }
     </div>
-
-    <!-- Income section (simple) -->
-    <div class="card">
-      <div class="card-header-row">
-        <div class="card-title" style="margin:0">Income this month</div>
-        <span class="text-accent" style="font-weight:700">${fmt(getMonthIncome(activeMonthKey))}</span>
-      </div>
-      ${(months[activeMonthKey].meta.incomeSources || []).length === 0
-        ? `<div class="text-muted" style="margin-bottom:12px;">No income entered</div>`
-        : (months[activeMonthKey].meta.incomeSources || []).map(src => `
-            <div class="settings-row">
-              <span class="settings-label">${src.label || "Income"}</span>
-              <span class="settings-value">${fmt(src.amount)}</span>
-            </div>
-          `).join("")
-      }
-      <div class="input-grid-2" style="margin-top:8px;">
-        <div>
-          <input class="form-input" id="incomeLabel" type="text" placeholder="Label" value="Salary">
-        </div>
-        <div>
-          <input class="form-input" id="incomeAmount" type="number" step="0.01" placeholder="Amount">
-        </div>
-      </div>
-      <button class="btn btn-sm btn-ghost" id="addIncomeBtn" style="margin-top:10px;width:100%;">＋ Add income</button>
-    </div>
   `;
 
   // Event wiring
@@ -1664,15 +1672,29 @@ function renderLogView() {
     renderAll();
   });
 
+  // Search — live filter without full re-render of focus loss
+  const searchEl = document.getElementById("txSearch");
+  searchEl?.addEventListener("input", e => {
+    txSearch = e.target.value;
+    // Debounce-ish: re-render on input is fine for this list size
+    renderLogView();
+    // Restore focus + cursor
+    const el = document.getElementById("txSearch");
+    if (el) {
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    }
+  });
+
   document.getElementById("txFilter")?.addEventListener("change", e => {
     txFilterCat = e.target.value;
     renderLogView();
   });
 
-  container.querySelectorAll("[data-quick-log]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      quickLogTransaction(btn.dataset.quickLog, Number(btn.dataset.amount));
-    });
+  document.getElementById("txSort")?.addEventListener("change", e => {
+    txSortOrder = e.target.value;
+    renderLogView();
   });
 
   container.querySelectorAll("[data-edit-tx]").forEach(btn => {
@@ -1713,6 +1735,16 @@ function renderLogView() {
     months[activeMonthKey].meta.incomeSources.push({ id: uid(), label, amount });
     saveState();
     renderLogView();
+  });
+
+  container.querySelectorAll("[data-del-income]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.delIncome;
+      months[activeMonthKey].meta.incomeSources =
+        (months[activeMonthKey].meta.incomeSources || []).filter(s => s.id !== id);
+      saveState();
+      renderLogView();
+    });
   });
 }
 
