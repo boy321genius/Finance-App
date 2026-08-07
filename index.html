@@ -710,6 +710,7 @@ let txSortOrder    = "newest";
 let txSearch       = "";
 let showAddForm    = false;
 let budgetViewMode = "month"; // "month" | "year"
+let editingIncomeId = null;
 
 const STORAGE_KEY = "financeTrackerState_v1";
 
@@ -1669,22 +1670,54 @@ function renderLogView() {
       </div>
       ${incomeSources.length === 0
         ? `<div class="text-muted" style="margin-bottom:10px;font-size:13px;">No income entered</div>`
-        : incomeSources.map(src => `
-            <div class="settings-row">
-              <span class="settings-label">${src.label || "Income"}</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="settings-value">${fmt(src.amount)}</span>
-                <button class="tx-action" data-del-income="${src.id}" title="Remove">🗑</button>
-              </div>
-            </div>
-          `).join("")
+                : incomeSources.map(src => {
+            const editing = editingIncomeId === src.id;
+            if (editing) {
+              return `
+                <div data-edit-income-block="${src.id}" style="padding:10px 0;border-bottom:1px solid var(--border);">
+                  <div class="input-grid-2">
+                    <div>
+                      <label class="form-label">Label</label>
+                      <input class="form-input edit-income-label" type="text" value="${src.label || "Income"}">
+                    </div>
+                    <div>
+                      <label class="form-label">Amount</label>
+                      <input class="form-input edit-income-amount" type="number" step="0.01" value="${src.amount || ""}">
+                    </div>
+                    <div class="full">
+                      <label class="form-label">Date</label>
+                      <input class="form-input edit-income-date" type="date" value="${src.dateISO || todayISO}">
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+                    <button class="btn btn-sm btn-ghost" data-cancel-edit-income>Cancel</button>
+                    <button class="btn btn-sm" data-save-income="${src.id}">Save</button>
+                  </div>
+                </div>`;
+            }
+            return `
+              <div class="settings-row">
+                <div style="min-width:0;flex:1;">
+                  <div class="settings-label">${src.label || "Income"}</div>
+                  <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${src.dateISO || "No date"}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                  <span class="settings-value">${fmt(src.amount)}</span>
+                  <button class="tx-action" data-edit-income="${src.id}" title="Edit">✏️</button>
+                  <button class="tx-action" data-del-income="${src.id}" title="Remove">🗑</button>
+                </div>
+              </div>`;
+          }).join("")
       }
-      <div class="input-grid-2" style="margin-top:6px;">
+           <div class="input-grid-2" style="margin-top:6px;">
         <div>
-          <input class="form-input" id="incomeLabel" type="text" placeholder="Label" value="Salary">
+          <input class="form-input" id="incomeLabel" type="text" placeholder="Label" value="Paycheck">
         </div>
         <div>
           <input class="form-input" id="incomeAmount" type="number" step="0.01" placeholder="Amount">
+        </div>
+        <div class="full">
+          <input class="form-input" id="incomeDate" type="date" value="${todayISO}">
         </div>
       </div>
       <button class="btn btn-sm btn-ghost" id="addIncomeBtn" style="margin-top:10px;width:100%;">＋ Add income</button>
@@ -1848,12 +1881,13 @@ function renderLogView() {
     });
   });
 
-  document.getElementById("addIncomeBtn")?.addEventListener("click", () => {
+    document.getElementById("addIncomeBtn")?.addEventListener("click", () => {
     const label = document.getElementById("incomeLabel")?.value?.trim() || "Income";
     const amount = Number(document.getElementById("incomeAmount")?.value || 0);
+    const dateISO = document.getElementById("incomeDate")?.value || todayISO;
     if (!amount) { alert("Enter an amount."); return; }
     ensureMonthExists(activeMonthKey);
-    months[activeMonthKey].meta.incomeSources.push({ id: uid(), label, amount });
+    months[activeMonthKey].meta.incomeSources.push({ id: uid(), label, amount, dateISO });
     saveState();
     renderLogView();
   });
@@ -1863,6 +1897,42 @@ function renderLogView() {
       const id = btn.dataset.delIncome;
       months[activeMonthKey].meta.incomeSources =
         (months[activeMonthKey].meta.incomeSources || []).filter(s => s.id !== id);
+      saveState();
+      renderLogView();
+    });
+  });
+
+  // --- income edit handlers (add these) ---
+  container.querySelectorAll("[data-edit-income]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      editingIncomeId = btn.dataset.editIncome;
+      renderLogView();
+    });
+  });
+
+  container.querySelectorAll("[data-cancel-edit-income]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      editingIncomeId = null;
+      renderLogView();
+    });
+  });
+
+  container.querySelectorAll("[data-save-income]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.saveIncome;
+      const block = container.querySelector(`[data-edit-income-block="${id}"]`);
+      if (!block) return;
+      const label = block.querySelector(".edit-income-label")?.value?.trim() || "Income";
+      const amount = Number(block.querySelector(".edit-income-amount")?.value || 0);
+      const dateISO = block.querySelector(".edit-income-date")?.value || todayISO;
+      if (!amount) { alert("Enter an amount."); return; }
+      const src = (months[activeMonthKey].meta.incomeSources || []).find(s => s.id === id);
+      if (src) {
+        src.label = label;
+        src.amount = amount;
+        src.dateISO = dateISO;
+      }
+      editingIncomeId = null;
       saveState();
       renderLogView();
     });
