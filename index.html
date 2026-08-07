@@ -822,10 +822,14 @@ function getUnpaidRecurring(monthKey) {
     ...(appSettings.recurringBills || []),
     ...(appSettings.recurringSubscriptions || [])
   ].filter(item => {
+    // Only items with a due date get the easy one-tap log
+    if (!item.dueDay || item.dueDay < 1 || item.dueDay > 31) return false;
     if (!item.budgetAmount || item.budgetAmount <= 0) return false;
     if (item.annualEnabled && isAnnualPaid(item, getYearTxs(monthKey))) return false;
     return !paidCats.has(item.name);
   });
+  // Sort by due day ascending (1 → 31)
+  items.sort((a, b) => (a.dueDay || 99) - (b.dueDay || 99));
   return items;
 }
 
@@ -1365,10 +1369,6 @@ function renderHomeView() {
   const remaining = income - spent;
   const unpaid = getUnpaidRecurring(activeMonthKey);
 
-  const txs = [...(months[activeMonthKey].transactions || [])]
-    .sort((a, b) => (b.dateISO || "").localeCompare(a.dateISO || ""))
-    .slice(0, 5);
-
   // Month navigation
   const [y, m] = activeMonthKey.split("-").map(Number);
   const prevKey = formatMonthKey(new Date(y, m - 2, 1));
@@ -1402,7 +1402,7 @@ function renderHomeView() {
       </div>
     </div>
 
-    <!-- Unpaid bills — the key logging improvement -->
+    <!-- Unpaid bills with due dates — one-tap log -->
     <div class="card">
       <div class="card-header-row">
         <div class="card-title" style="margin:0">Unpaid this month</div>
@@ -1411,42 +1411,18 @@ function renderHomeView() {
       ${unpaid.length === 0
         ? `<div class="unpaid-empty">All caught up ✓</div>`
         : `<div class="unpaid-list">
-            ${unpaid.slice(0, 8).map(item => `
+            ${unpaid.map(item => `
               <div class="unpaid-row">
                 <div class="unpaid-info">
                   <div class="unpaid-name">${item.name}</div>
-                  <div class="unpaid-meta">${item.dueDay ? `Due day ${item.dueDay}` : "Recurring"}</div>
+                  <div class="unpaid-meta">Due day ${item.dueDay}</div>
                 </div>
                 <button class="unpaid-btn" data-quick-log="${item.name}" data-amount="${item.budgetAmount}">
                   Log ${fmt(item.budgetAmount)}
                 </button>
               </div>
             `).join("")}
-            ${unpaid.length > 8 ? `<div style="text-align:center;padding-top:4px;"><span class="text-muted">+${unpaid.length - 8} more in Budget</span></div>` : ""}
           </div>`
-      }
-    </div>
-
-    <!-- Recent -->
-    <div class="card">
-      <div class="card-header-row">
-        <div class="card-title" style="margin:0">Recent</div>
-        <button class="link-btn" id="goToLog">See all</button>
-      </div>
-      ${txs.length === 0
-        ? `<div class="empty">No transactions yet</div>`
-        : `<ul class="tx-list">
-            ${txs.map(tx => `
-              <li class="tx-row">
-                <div class="tx-icon">${categoryIcon(tx.category)}</div>
-                <div class="tx-info">
-                  <div class="tx-cat">${tx.category}</div>
-                  <div class="tx-meta">${tx.dateISO || ""}${tx.note ? " · " + tx.note : ""}</div>
-                </div>
-                <div class="tx-amount">${fmt(tx.amount)}</div>
-              </li>
-            `).join("")}
-          </ul>`
       }
     </div>
   `;
@@ -1470,7 +1446,6 @@ function renderHomeView() {
       renderAll();
     }
   });
-  document.getElementById("goToLog")?.addEventListener("click", () => switchView("log"));
 
   // One-tap quick log
   container.querySelectorAll("[data-quick-log]").forEach(btn => {
@@ -1574,7 +1549,7 @@ function renderLogView() {
       <button class="btn" id="showAddBtn" style="margin-bottom:16px;">＋ Log a transaction</button>
     `}
 
-    <!-- Quick unpaid (also on Log for convenience) -->
+    <!-- Quick unpaid (items with due dates only) -->
     ${(() => {
       const unpaid = getUnpaidRecurring(activeMonthKey);
       if (unpaid.length === 0 || showAddForm) return "";
@@ -1582,10 +1557,11 @@ function renderLogView() {
         <div class="card">
           <div class="card-title">Quick-log unpaid</div>
           <div class="unpaid-list">
-            ${unpaid.slice(0, 5).map(item => `
+            ${unpaid.slice(0, 6).map(item => `
               <div class="unpaid-row">
                 <div class="unpaid-info">
                   <div class="unpaid-name">${item.name}</div>
+                  <div class="unpaid-meta">Due day ${item.dueDay}</div>
                 </div>
                 <button class="unpaid-btn" data-quick-log="${item.name}" data-amount="${item.budgetAmount}">
                   ${fmt(item.budgetAmount)}
