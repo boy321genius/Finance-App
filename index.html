@@ -2251,14 +2251,36 @@ const monthlyEssential = mustPay;
     }
 
     const retBal7 = fv(currentSavings, monthlyContrib, 7, yearsToRetire);
-    const monthlyIncome7 = retBal7 * 0.04 / 12;
+const monthlyIncome7 = retBal7 * 0.04 / 12;
+
+// Inflation-adjusted (today's dollars) — assume 3% inflation
+const inflationRate = 0.03;
+const retBalReal = yearsToRetire > 0
+  ? retBal7 / Math.pow(1 + inflationRate, yearsToRetire)
+  : retBal7;
+const monthlyIncomeReal = retBalReal * 0.04 / 12;
 
     body = `
       <div class="card" style="text-align:center;">
-        <div class="card-title">Projected at age ${retirementAge}</div>
-        <div class="hero-number text-accent">${fmtBig(retBal7)}</div>
-        <div class="hero-label">${yearsToRetire} years · 7% return · ${fmt(monthlyIncome7)}/mo (4% rule)</div>
-      </div>
+  <div class="card-title">Projected at age ${retirementAge}</div>
+  <div class="hero-number text-accent">${fmtBig(retBal7)}</div>
+  <div class="hero-label" style="margin-bottom:14px;">Nominal · ${yearsToRetire} years · ${fmt(monthlyIncome7)}/mo</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;">
+    <div class="goal-stat">
+      <div class="goal-stat-label">In today's $</div>
+      <div class="goal-stat-value" style="font-size:16px;">${fmtBig(retBalReal)}</div>
+    </div>
+    <div class="goal-stat">
+      <div class="goal-stat-label">Today's $/mo</div>
+      <div class="goal-stat-value" style="font-size:16px;">${fmt(monthlyIncomeReal)}</div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);line-height:1.45;">
+    Assumes 7% avg annual return, 3% inflation, fixed monthly contributions, and a 4% withdrawal rate in retirement.
+  </div>
+</div>
       <div class="card">
         <div class="card-title">Your numbers</div>
         <div class="input-grid-2">
