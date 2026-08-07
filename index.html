@@ -2487,35 +2487,48 @@ const pctToGoal = primary.cash > 0 ? Math.min((current / primary.cash) * 100, 10
 </div>
 
       <div class="card">
-        <div class="card-title">Target home</div>
-        <div class="input-grid-2">
-          <div class="full">
-            <label class="form-label">Current savings</label>
-            <input class="form-input" id="homeSavings" type="number" step="500" value="${current}">
-          </div>
-          <div>
-  <label class="form-label">Down payment %</label>
-  <input class="form-input" id="homeDownPct" type="number" step="1" min="0" max="100" value="${downPct}">
-</div>
-          <div>
-            <label class="form-label">Interest rate %</label>
-            <input class="form-input" id="homeRate" type="number" step="0.125" value="${rate}">
-          </div>
-          <div>
-            <label class="form-label">Loan term (years)</label>
-            <input class="form-input" id="homeTerm" type="number" step="1" value="${term}">
-          </div>
-          <div>
-            <label class="form-label">Price range low</label>
-            <input class="form-input" id="homePriceLow" type="number" step="5000" value="${priceLow}">
-          </div>
-          <div>
-            <label class="form-label">Price range high</label>
-            <input class="form-input" id="homePriceHigh" type="number" step="5000" value="${priceHigh}">
-          </div>
-        </div>
-        <button class="btn" id="saveHome" style="margin-top:12px;">Update</button>
+  <div class="card-title">Target home</div>
+
+  <!-- Savings -->
+  <div style="margin-bottom:14px;">
+    <label class="form-label">Current savings</label>
+    <input class="form-input" id="homeSavings" type="number" step="500" value="${current}">
+  </div>
+
+  <!-- Price range -->
+  <div style="margin-bottom:14px;">
+    <div class="form-label" style="margin-bottom:6px;">Price range</div>
+    <div class="input-grid-2">
+      <div>
+        <input class="form-input" id="homePriceLow" type="number" step="5000" value="${priceLow}" placeholder="Low">
       </div>
+      <div>
+        <input class="form-input" id="homePriceHigh" type="number" step="5000" value="${priceHigh}" placeholder="High">
+      </div>
+    </div>
+  </div>
+
+  <!-- Financing -->
+  <div style="margin-bottom:4px;">
+    <div class="form-label" style="margin-bottom:6px;">Financing</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div>
+        <label class="form-label" style="font-size:10px;">Down %</label>
+        <input class="form-input" id="homeDownPct" type="number" step="1" min="0" max="100" value="${downPct}">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:10px;">Rate %</label>
+        <input class="form-input" id="homeRate" type="number" step="0.125" value="${rate}">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:10px;">Term (yrs)</label>
+        <input class="form-input" id="homeTerm" type="number" step="1" value="${term}">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" id="saveHome" style="margin-top:14px;">Update</button>
+</div>
 
       <div class="card">
         <div class="card-title">Price scenarios</div>
