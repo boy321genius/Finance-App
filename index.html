@@ -2236,6 +2236,9 @@ const monthlyEssential = mustPay;
     const currentAge = Number(g.retCurrentAge ?? 35);
     const retirementAge = Number(g.retRetirementAge ?? 65);
     const yearsToRetire = Math.max(0, retirementAge - currentAge);
+    const expectedReturn = Number(g.retExpectedReturn ?? 6);
+    const inflationRate = Number(g.retInflation ?? 3) / 100;
+    const withdrawalRate = Number(g.retWithdrawalRate ?? 3.5) / 100;
 
     function fv(principal, monthly, annualRate, years) {
       if (years <= 0) return principal;
@@ -2250,21 +2253,19 @@ const monthlyEssential = mustPay;
       return "$" + Number(n).toFixed(0);
     }
 
-    const retBal7 = fv(currentSavings, monthlyContrib, 7, yearsToRetire);
-const monthlyIncome7 = retBal7 * 0.04 / 12;
+    const retBal = fv(currentSavings, monthlyContrib, expectedReturn, yearsToRetire);
+const monthlyIncome = retBal * withdrawalRate / 12;
 
-// Inflation-adjusted (today's dollars) — assume 3% inflation
-const inflationRate = 0.03;
 const retBalReal = yearsToRetire > 0
-  ? retBal7 / Math.pow(1 + inflationRate, yearsToRetire)
-  : retBal7;
-const monthlyIncomeReal = retBalReal * 0.04 / 12;
+  ? retBal / Math.pow(1 + inflationRate, yearsToRetire)
+  : retBal;
+const monthlyIncomeReal = retBalReal * withdrawalRate / 12;
 
     body = `
       <div class="card" style="text-align:center;">
   <div class="card-title">Projected at age ${retirementAge}</div>
-  <div class="hero-number text-accent">${fmtBig(retBal7)}</div>
-  <div class="hero-label" style="margin-bottom:14px;">Nominal · ${yearsToRetire} years · ${fmt(monthlyIncome7)}/mo</div>
+  <div class="hero-number text-accent">${fmtBig(retBal)}</div>
+  <div class="hero-label" style="margin-bottom:14px;">Nominal · ${yearsToRetire} years · ${fmt(monthlyIncome)}/mo</div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;">
     <div class="goal-stat">
@@ -2278,7 +2279,7 @@ const monthlyIncomeReal = retBalReal * 0.04 / 12;
   </div>
 
   <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);line-height:1.45;">
-    Assumes 7% avg annual return, 3% inflation, fixed monthly contributions, and a 4% withdrawal rate in retirement.
+    Assumes ${expectedReturn}% avg annual return, ${(inflationRate*100).toFixed(1)}% inflation, fixed monthly contributions, and a ${(withdrawalRate*100).toFixed(1)}% withdrawal rate in retirement.
   </div>
 </div>
       <div class="card">
@@ -2301,6 +2302,24 @@ const monthlyIncomeReal = retBalReal * 0.04 / 12;
             <input class="form-input" id="retRetAge" type="number" value="${retirementAge}">
           </div>
         </div>
+
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+  <div class="form-label" style="margin-bottom:8px;">Assumptions</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <div>
+      <label class="form-label" style="font-size:10px;">Return %</label>
+      <input class="form-input" id="retReturn" type="number" step="0.1" min="0" max="15" value="${expectedReturn}">
+    </div>
+    <div>
+      <label class="form-label" style="font-size:10px;">Inflation %</label>
+      <input class="form-input" id="retInflation" type="number" step="0.1" min="0" max="10" value="${(inflationRate*100)}">
+    </div>
+    <div>
+      <label class="form-label" style="font-size:10px;">Withdraw %</label>
+      <input class="form-input" id="retWithdraw" type="number" step="0.1" min="0" max="10" value="${(withdrawalRate*100)}">
+    </div>
+  </div>
+</div>
         <button class="btn" id="saveRet">Update projections</button>
       </div>
       <div class="card">
@@ -2475,6 +2494,9 @@ const monthlyIncomeReal = retBalReal * 0.04 / 12;
     g.retRetirementAge = Number(document.getElementById("retRetAge")?.value || 65);
     g.currentAmount = g.retCurrentSavings;
     g.monthlyContribution = g.retMonthlyContrib;
+    g.retExpectedReturn = Number(document.getElementById("retReturn")?.value || 6);
+    g.retInflation = Number(document.getElementById("retInflation")?.value || 3);
+    g.retWithdrawalRate = Number(document.getElementById("retWithdraw")?.value || 3.5);
     saveState();
     renderGoalsView();
   });
