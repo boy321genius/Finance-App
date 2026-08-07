@@ -682,7 +682,8 @@ let appSettings = {
   recurringBills:          [],
   recurringSubscriptions:  [],
   recurringInvestments:    [],
-  discretionaryCategories: []
+  discretionaryCategories: [],
+  paycheckFrequency:       "biweekly" // biweekly | semimonthly | weekly
 };
 
 let months       = {};
@@ -1451,6 +1452,33 @@ function renderHomeView() {
       </div>
     </div>
 
+    <!-- Bills account — per paycheck set-aside -->
+    ${(() => {
+      const billsTotal = (appSettings.recurringBills || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+      const subsTotal  = (appSettings.recurringSubscriptions || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+      const monthlyBills = billsTotal + subsTotal;
+      const freq = appSettings.paycheckFrequency || "biweekly";
+      const perCheck = freq === "weekly"      ? monthlyBills * 12 / 52
+                     : freq === "semimonthly" ? monthlyBills / 2
+                     : monthlyBills * 12 / 26; // biweekly
+      const freqLabel = freq === "weekly" ? "weekly" : freq === "semimonthly" ? "semi-monthly" : "biweekly";
+      if (monthlyBills <= 0) return "";
+      return `
+        <div class="card" id="paycheckCard" style="padding:14px 16px; cursor:pointer;" title="Tap to change paycheck frequency">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="min-width:0;">
+              <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.3px;">Bills account</div>
+              <div style="font-size:22px;font-weight:700;letter-spacing:-0.4px;margin-top:2px;color:var(--accent);">${fmt(perCheck)}</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px;">per paycheck · ${freqLabel}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:12px;color:var(--text-2);">${fmt(monthlyBills)}/mo</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Must Pay + Subs</div>
+            </div>
+          </div>
+        </div>`;
+    })()}
+
     <!-- Unpaid bills with due dates — one-tap log -->
     <div class="card">
       <div class="card-header-row">
@@ -1499,6 +1527,16 @@ function renderHomeView() {
       ensureMonthExists(activeMonthKey);
       renderAll();
     }
+  });
+
+  // Cycle paycheck frequency on tap
+  document.getElementById("paycheckCard")?.addEventListener("click", () => {
+    const order = ["biweekly", "semimonthly", "weekly"];
+    const cur = appSettings.paycheckFrequency || "biweekly";
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    appSettings.paycheckFrequency = next;
+    saveState();
+    renderHomeView();
   });
 
   // One-tap quick log
