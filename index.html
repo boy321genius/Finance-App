@@ -683,7 +683,7 @@ let appSettings = {
   recurringSubscriptions:  [],
   recurringInvestments:    [],
   discretionaryCategories: [],
-  paycheckFrequency:       "biweekly" // biweekly | semimonthly | weekly
+  paycheckFrequency:       "semimonthly" // semimonthly | biweekly | weekly
 };
 
 let months       = {};
@@ -1457,11 +1457,11 @@ function renderHomeView() {
       const billsTotal = (appSettings.recurringBills || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
       const subsTotal  = (appSettings.recurringSubscriptions || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
       const monthlyBills = billsTotal + subsTotal;
-      const freq = appSettings.paycheckFrequency || "biweekly";
+      const freq = appSettings.paycheckFrequency || "semimonthly";
       const perCheck = freq === "weekly"      ? monthlyBills * 12 / 52
-                     : freq === "semimonthly" ? monthlyBills / 2
-                     : monthlyBills * 12 / 26; // biweekly
-      const freqLabel = freq === "weekly" ? "weekly" : freq === "semimonthly" ? "semi-monthly" : "biweekly";
+                     : freq === "biweekly"    ? monthlyBills * 12 / 26
+                     : monthlyBills / 2; // semimonthly
+      const freqLabel = freq === "weekly" ? "weekly" : freq === "biweekly" ? "biweekly" : "semi-monthly";
       if (monthlyBills <= 0) return "";
       return `
         <div class="card" id="paycheckCard" style="padding:14px 16px; cursor:pointer;" title="Tap to change paycheck frequency">
@@ -1474,6 +1474,7 @@ function renderHomeView() {
             <div style="text-align:right;flex-shrink:0;">
               <div style="font-size:12px;color:var(--text-2);">${fmt(monthlyBills)}/mo</div>
               <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Must Pay + Subs</div>
+              <div style="font-size:10px;color:var(--text-3);margin-top:6px;opacity:0.7;">tap to change ↻</div>
             </div>
           </div>
         </div>`;
@@ -1531,8 +1532,8 @@ function renderHomeView() {
 
   // Cycle paycheck frequency on tap
   document.getElementById("paycheckCard")?.addEventListener("click", () => {
-    const order = ["biweekly", "semimonthly", "weekly"];
-    const cur = appSettings.paycheckFrequency || "biweekly";
+    const order = ["semimonthly", "biweekly", "weekly"];
+    const cur = appSettings.paycheckFrequency || "semimonthly";
     const next = order[(order.indexOf(cur) + 1) % order.length];
     appSettings.paycheckFrequency = next;
     saveState();
@@ -2045,10 +2046,116 @@ function renderGoalsView() {
         : goals.map(g => {
             let pct = 0, sub = "", color = "var(--accent)";
             if (g.type === "emergency") {
-              // simple display
-              const cur = Number(g.currentAmount || 0);
-              sub = fmt(cur) + " saved";
-            } else if (g.type === "retirement") {
+    const cur = Number(g.currentAmount || 0);
+    const baseline = Math.min(12, Math.max(1, Number(g.baselineMonths || 3)));
+    const goalM = Math.min(12, Math.max(1, Number(g.goalMonths || 6)));
+
+    // Primary: Must Pay. Secondary: Must Pay + Subs (info only)
+    const mustPay = (appSettings.recurringBills || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+    const subs = (appSettings.recurringSubscriptions || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+    const withSubs = mustPay + subs;
+
+    const baselineTarget = mustPay * baseline;
+    const goalTarget = mustPay * goalM;
+    const pct = goalTarget > 0 ? Math.min((cur / goalTarget) * 100, 100) : 0;
+    const monthsCovered = mustPay > 0 ? cur / mustPay : 0;
+
+    let ladderHtml = "";
+    for (let mo = 1; mo <= 12; mo++) {
+      const mpTarget = mustPay * mo;
+      const fullTarget = withSubs * mo;
+      const reached = cur >= mpTarget; // visual "reached" is Must Pay only
+      const isBase = mo === baseline;
+      const isGoal = mo === goalM;
+      let rowBg = "transparent";
+      let accentColor = "var(--text-2)";
+      if (isBase && isGoal) {
+        rowBg = "rgba(96,165,250,0.10)";
+        accentColor = "var(--accent)";
+      } else if (isBase) {
+        rowBg = "rgba(251,191,36,0.10)";
+        accentColor = "var(--amber)";
+      } else if (isGoal) {
+        rowBg = "rgba(96,165,250,0.10)";
+        accentColor = "var(--accent)";
+      }
+      ladderHtml += `
+        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;align-items:center;padding:7px 8px;border-radius:8px;background:${rowBg};margin-bottom:2px;">
+          <div style="font-size:12px;font-weight:700;color:${isBase || isGoal ? accentColor : "var(--text-2)"};">${mo} mo</div>
+          <div style="text-align:right;font-size:13px;font-weight:700;color:${reached ? "var(--green)" : isBase || isGoal ? accentColor : "var(--text)"};">${mustPay ? fmtShort(mpTarget) : "—"}</div>
+          <div style="text-align:right;font-size:12px;font-weight:500;color:var(--text-3);">${withSubs ? fmtShort(fullTarget) : "—"}</div>
+          <div style="text-align:center;font-size:12px;color:var(--green);">${reached ? "✓" : ""}</div>
+        </div>`;
+    }
+
+    body = `
+      <div class="card">
+        <div style="text-align:center;padding:8px 0 16px;">
+          <div class="hero-number text-accent">${fmt(cur)}</div>
+          <div class="hero-label">Current balance · ${monthsCovered > 0 ? monthsCovered.toFixed(1) + " months of Must Pay" : "no coverage yet"}</div>
+        </div>
+        <div class="goal-stat-grid">
+          <div class="goal-stat">
+            <div class="goal-stat-label">${baseline}-mo baseline</div>
+            <div class="goal-stat-value" style="color:var(--amber);">${mustPay ? fmt(baselineTarget) : "—"}</div>
+          </div>
+          <div class="goal-stat">
+            <div class="goal-stat-label">${goalM}-mo goal</div>
+            <div class="goal-stat-value" style="color:var(--accent);">${mustPay ? fmt(goalTarget) : "—"}</div>
+          </div>
+        </div>
+        ${goalTarget > 0 ? `
+          <div class="progress-track" style="height:8px;margin-bottom:6px;">
+            <div class="progress-fill ${pct >= 100 ? "under" : pct >= 50 ? "warn" : "unset"}" style="width:${pct}%"></div>
+          </div>
+          <div style="text-align:center;font-size:13px;color:var(--text-2);">${pct.toFixed(0)}% of ${goalM}-month Must Pay goal</div>
+        ` : ""}
+      </div>
+
+      <div class="card">
+        <div class="card-title">Coverage ladder</div>
+        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;padding:0 8px 4px;font-size:10px;font-weight:700;letter-spacing:0.3px;">
+          <div></div>
+          <div style="text-align:right;color:var(--text-2);">Must Pay</div>
+          <div style="text-align:right;color:var(--text-3);font-weight:600;">+ Subs</div>
+          <div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;padding:0 8px 10px;font-size:11px;">
+          <div></div>
+          <div style="text-align:right;color:var(--text-2);font-weight:600;">${mustPay ? fmt(mustPay) + "/mo" : "—"}</div>
+          <div style="text-align:right;color:var(--text-3);">${withSubs ? fmt(withSubs) + "/mo" : "—"}</div>
+          <div></div>
+        </div>
+        ${mustPay > 0
+          ? `<div>${ladderHtml}</div>
+             <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--text-3);">
+               <span><span style="color:var(--amber);">●</span> baseline</span>
+               <span><span style="color:var(--accent);">●</span> goal</span>
+               <span><span style="color:var(--green);">✓</span> Must Pay reached</span>
+             </div>`
+          : `<p class="text-muted">Set budgets on Must Pay bills in Settings to build this ladder.</p>`
+        }
+      </div>
+
+      <div class="card">
+        <div class="card-title">Update</div>
+        <div class="input-grid-2">
+          <div class="full">
+            <label class="form-label">Current amount ($)</label>
+            <input class="form-input" id="efCurrent" type="number" step="100" value="${cur}">
+          </div>
+          <div>
+            <label class="form-label">Baseline months</label>
+            <input class="form-input" id="efBase" type="number" min="1" max="12" value="${baseline}">
+          </div>
+          <div>
+            <label class="form-label">Goal months</label>
+            <input class="form-input" id="efGoal" type="number" min="1" max="12" value="${goalM}">
+          </div>
+        </div>
+        <button class="btn" id="saveEf">Save</button>
+      </div>`;
+  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {
               const cur = Number(g.retCurrentSavings ?? g.currentAmount ?? 0);
               sub = fmt(cur) + " · age " + (g.retCurrentAge || 35);
             } else if (g.type === "home") {
@@ -2105,42 +2212,108 @@ function renderGoalDetail(container, g) {
 
   if (g.type === "emergency") {
     const cur = Number(g.currentAmount || 0);
-    const baseline = Number(g.baselineMonths || 3);
-    const goalM = Number(g.goalMonths || 6);
-    // Estimate monthly expenses from recent data
-    const recentKeys = Object.keys(months).sort().slice(-3);
-    let avgSpend = 0;
-    if (recentKeys.length) {
-      avgSpend = recentKeys.reduce((s, k) => s + getMonthSpent(k), 0) / recentKeys.length;
-    }
-    const baselineTarget = avgSpend * baseline;
-    const goalTarget = avgSpend * goalM;
+    const baseline = Math.min(12, Math.max(1, Number(g.baselineMonths || 3)));
+    const goalM = Math.min(12, Math.max(1, Number(g.goalMonths || 6)));
+
+    // Linked to Must Pay + Subscriptions (same as Bills account) — your share only
+    const mustPay = (appSettings.recurringBills || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+    const subs = (appSettings.recurringSubscriptions || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
+    const monthlyEssential = mustPay + subs;
+
+    const baselineTarget = monthlyEssential * baseline;
+    const goalTarget = monthlyEssential * goalM;
     const pct = goalTarget > 0 ? Math.min((cur / goalTarget) * 100, 100) : 0;
+    const monthsCovered = monthlyEssential > 0 ? cur / monthlyEssential : 0;
+
+    // Progressive 1–12 month rows
+    const maxBar = monthlyEssential * 12;
+    let ladderHtml = "";
+    for (let mo = 1; mo <= 12; mo++) {
+      const target = monthlyEssential * mo;
+      const barPct = maxBar > 0 ? (target / maxBar) * 100 : 0;
+      const reached = cur >= target;
+      const isBase = mo === baseline;
+      const isGoal = mo === goalM;
+      let rowBg = "transparent";
+      let labelExtra = "";
+      let valueColor = "var(--text)";
+      if (isBase && isGoal) {
+        rowBg = "rgba(96,165,250,0.10)";
+        labelExtra = " · baseline & goal";
+        valueColor = "var(--accent)";
+      } else if (isBase) {
+        rowBg = "rgba(251,191,36,0.10)";
+        labelExtra = " · baseline";
+        valueColor = "var(--amber)";
+      } else if (isGoal) {
+        rowBg = "rgba(96,165,250,0.10)";
+        labelExtra = " · goal";
+        valueColor = "var(--accent)";
+      }
+      ladderHtml += `
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:${rowBg};margin-bottom:2px;">
+          <div style="width:52px;flex-shrink:0;font-size:12px;font-weight:600;color:${isBase || isGoal ? valueColor : "var(--text-2)"};">
+            ${mo} mo
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="progress-track" style="height:5px;">
+              <div class="progress-fill" style="width:${barPct}%;background:${reached ? "var(--green)" : isGoal ? "var(--accent)" : isBase ? "var(--amber)" : "rgba(148,163,184,0.35)"};"></div>
+            </div>
+          </div>
+          <div style="width:72px;text-align:right;font-size:12px;font-weight:700;color:${valueColor};flex-shrink:0;">
+            ${fmtShort(target)}
+          </div>
+          <div style="width:18px;text-align:center;flex-shrink:0;font-size:12px;">
+            ${reached ? "✓" : ""}
+          </div>
+        </div>`;
+      // labelExtra intentionally not rendered as text to keep rows tight;
+      // baseline/goal are indicated by row highlight + color
+    }
 
     body = `
       <div class="card">
-        <div class="card-title">Emergency Fund</div>
-        <div style="text-align:center;padding:12px 0 18px;">
+        <div style="text-align:center;padding:8px 0 16px;">
           <div class="hero-number text-accent">${fmt(cur)}</div>
-          <div class="hero-label">Current balance</div>
+          <div class="hero-label">Current balance · ${monthsCovered > 0 ? monthsCovered.toFixed(1) + " months covered" : "no coverage yet"}</div>
         </div>
         <div class="goal-stat-grid">
           <div class="goal-stat">
-            <div class="goal-stat-label">${baseline}-month baseline</div>
-            <div class="goal-stat-value">${avgSpend ? fmt(baselineTarget) : "—"}</div>
+            <div class="goal-stat-label">${baseline}-mo baseline</div>
+            <div class="goal-stat-value" style="color:var(--amber);">${monthlyEssential ? fmt(baselineTarget) : "—"}</div>
           </div>
           <div class="goal-stat">
-            <div class="goal-stat-label">${goalM}-month goal</div>
-            <div class="goal-stat-value">${avgSpend ? fmt(goalTarget) : "—"}</div>
+            <div class="goal-stat-label">${goalM}-mo goal</div>
+            <div class="goal-stat-value" style="color:var(--accent);">${monthlyEssential ? fmt(goalTarget) : "—"}</div>
           </div>
         </div>
         ${goalTarget > 0 ? `
-          <div class="progress-track" style="height:8px;margin-bottom:8px;">
+          <div class="progress-track" style="height:8px;margin-bottom:6px;">
             <div class="progress-fill ${pct >= 100 ? "under" : pct >= 50 ? "warn" : "unset"}" style="width:${pct}%"></div>
           </div>
-          <div style="text-align:center;font-size:13px;color:var(--text-2)">${pct.toFixed(0)}% of ${goalM}-month goal</div>
-        ` : `<p class="text-muted">Log some spending so we can estimate your monthly expenses.</p>`}
+          <div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:4px;">${pct.toFixed(0)}% of ${goalM}-month goal</div>
+        ` : ""}
       </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <div class="card-title" style="margin:0">Coverage ladder</div>
+          <div style="text-align:right;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${fmt(monthlyEssential)}/mo</div>
+            <div style="font-size:10px;color:var(--text-3);">Must Pay + Subs</div>
+          </div>
+        </div>
+        ${monthlyEssential > 0
+          ? `<div style="margin-top:4px;">${ladderHtml}</div>
+             <div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px;color:var(--text-3);">
+               <span><span style="color:var(--amber);">●</span> baseline</span>
+               <span><span style="color:var(--accent);">●</span> goal</span>
+               <span><span style="color:var(--green);">✓</span> reached</span>
+             </div>`
+          : `<p class="text-muted" style="margin-top:8px;">Set budgets on Must Pay and Subscriptions in Settings to build this ladder.</p>`
+        }
+      </div>
+
       <div class="card">
         <div class="card-title">Update</div>
         <div class="input-grid-2">
@@ -2154,7 +2327,7 @@ function renderGoalDetail(container, g) {
           </div>
           <div>
             <label class="form-label">Goal months</label>
-            <input class="form-input" id="efGoal" type="number" min="1" max="24" value="${goalM}">
+            <input class="form-input" id="efGoal" type="number" min="1" max="12" value="${goalM}">
           </div>
         </div>
         <button class="btn" id="saveEf">Save</button>
