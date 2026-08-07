@@ -2050,10 +2050,8 @@ function renderGoalsView() {
     const baseline = Math.min(12, Math.max(1, Number(g.baselineMonths || 3)));
     const goalM = Math.min(12, Math.max(1, Number(g.goalMonths || 6)));
 
-    // Primary: Must Pay. Secondary: Must Pay + Subs (info only)
+    // Linked to Must Pay only (your share)
     const mustPay = (appSettings.recurringBills || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
-    const subs = (appSettings.recurringSubscriptions || []).reduce((s, i) => s + Number(i.budgetAmount || 0), 0);
-    const withSubs = mustPay + subs;
 
     const baselineTarget = mustPay * baseline;
     const goalTarget = mustPay * goalM;
@@ -2062,9 +2060,8 @@ function renderGoalsView() {
 
     let ladderHtml = "";
     for (let mo = 1; mo <= 12; mo++) {
-      const mpTarget = mustPay * mo;
-      const fullTarget = withSubs * mo;
-      const reached = cur >= mpTarget; // visual "reached" is Must Pay only
+      const target = mustPay * mo;
+      const reached = cur >= target;
       const isBase = mo === baseline;
       const isGoal = mo === goalM;
       let rowBg = "transparent";
@@ -2079,12 +2076,25 @@ function renderGoalsView() {
         rowBg = "rgba(96,165,250,0.10)";
         accentColor = "var(--accent)";
       }
+      // Bar = coverage of THIS month's target (full = reached)
+      const barPct = target > 0 ? Math.min((cur / target) * 100, 100) : 0;
+      const barColor = reached ? "var(--green)"
+        : barPct > 0 ? (isGoal ? "var(--accent)" : isBase ? "var(--amber)" : "var(--accent)")
+        : "transparent";
       ladderHtml += `
-        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;align-items:center;padding:7px 8px;border-radius:8px;background:${rowBg};margin-bottom:2px;">
-          <div style="font-size:12px;font-weight:700;color:${isBase || isGoal ? accentColor : "var(--text-2)"};">${mo} mo</div>
-          <div style="text-align:right;font-size:13px;font-weight:700;color:${reached ? "var(--green)" : isBase || isGoal ? accentColor : "var(--text)"};">${mustPay ? fmtShort(mpTarget) : "—"}</div>
-          <div style="text-align:right;font-size:12px;font-weight:500;color:var(--text-3);">${withSubs ? fmtShort(fullTarget) : "—"}</div>
-          <div style="text-align:center;font-size:12px;color:var(--green);">${reached ? "✓" : ""}</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:${rowBg};margin-bottom:2px;">
+          <div style="width:48px;flex-shrink:0;font-size:12px;font-weight:700;color:${isBase || isGoal ? accentColor : "var(--text-2)"};">${mo} mo</div>
+          <div style="flex:1;min-width:0;">
+            <div class="progress-track" style="height:5px;">
+              <div class="progress-fill" style="width:${barPct}%;background:${barColor};"></div>
+            </div>
+          </div>
+          <div style="width:72px;text-align:right;font-size:13px;font-weight:700;color:${reached ? "var(--green)" : isBase || isGoal ? accentColor : "var(--text)"};flex-shrink:0;">
+            ${mustPay ? fmtShort(target) : "—"}
+          </div>
+          <div style="width:18px;text-align:center;flex-shrink:0;font-size:12px;color:var(--green);">
+            ${reached ? "✓" : ""}
+          </div>
         </div>`;
     }
 
@@ -2092,7 +2102,7 @@ function renderGoalsView() {
       <div class="card">
         <div style="text-align:center;padding:8px 0 16px;">
           <div class="hero-number text-accent">${fmt(cur)}</div>
-          <div class="hero-label">Current balance · ${monthsCovered > 0 ? monthsCovered.toFixed(1) + " months of Must Pay" : "no coverage yet"}</div>
+          <div class="hero-label">Current balance · ${monthsCovered > 0 ? monthsCovered.toFixed(1) + " months covered" : "no coverage yet"}</div>
         </div>
         <div class="goal-stat-grid">
           <div class="goal-stat">
@@ -2108,32 +2118,26 @@ function renderGoalsView() {
           <div class="progress-track" style="height:8px;margin-bottom:6px;">
             <div class="progress-fill ${pct >= 100 ? "under" : pct >= 50 ? "warn" : "unset"}" style="width:${pct}%"></div>
           </div>
-          <div style="text-align:center;font-size:13px;color:var(--text-2);">${pct.toFixed(0)}% of ${goalM}-month Must Pay goal</div>
+          <div style="text-align:center;font-size:13px;color:var(--text-2);">${pct.toFixed(0)}% of ${goalM}-month goal</div>
         ` : ""}
       </div>
 
       <div class="card">
-        <div class="card-title">Coverage ladder</div>
-        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;padding:0 8px 4px;font-size:10px;font-weight:700;letter-spacing:0.3px;">
-          <div></div>
-          <div style="text-align:right;color:var(--text-2);">Must Pay</div>
-          <div style="text-align:right;color:var(--text-3);font-weight:600;">+ Subs</div>
-          <div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:44px 1fr 1fr 18px;gap:6px;padding:0 8px 10px;font-size:11px;">
-          <div></div>
-          <div style="text-align:right;color:var(--text-2);font-weight:600;">${mustPay ? fmt(mustPay) + "/mo" : "—"}</div>
-          <div style="text-align:right;color:var(--text-3);">${withSubs ? fmt(withSubs) + "/mo" : "—"}</div>
-          <div></div>
+        <div class="card-header-row">
+          <div class="card-title" style="margin:0">Coverage ladder</div>
+          <div style="text-align:right;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${mustPay ? fmt(mustPay) : "—"}/mo</div>
+            <div style="font-size:10px;color:var(--text-3);">Must Pay</div>
+          </div>
         </div>
         ${mustPay > 0
-          ? `<div>${ladderHtml}</div>
+          ? `<div style="margin-top:6px;">${ladderHtml}</div>
              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--text-3);">
                <span><span style="color:var(--amber);">●</span> baseline</span>
                <span><span style="color:var(--accent);">●</span> goal</span>
-               <span><span style="color:var(--green);">✓</span> Must Pay reached</span>
+               <span><span style="color:var(--green);">✓</span> reached</span>
              </div>`
-          : `<p class="text-muted">Set budgets on Must Pay bills in Settings to build this ladder.</p>`
+          : `<p class="text-muted" style="margin-top:8px;">Set budgets on Must Pay bills in Settings to build this ladder.</p>`
         }
       </div>
 
@@ -2155,7 +2159,7 @@ function renderGoalsView() {
         </div>
         <button class="btn" id="saveEf">Save</button>
       </div>`;
-  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {
+  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {  } else if (g.type === "retirement") {
               const cur = Number(g.retCurrentSavings ?? g.currentAmount ?? 0);
               sub = fmt(cur) + " · age " + (g.retCurrentAge || 35);
             } else if (g.type === "home") {
